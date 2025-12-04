@@ -1,0 +1,60 @@
+{
+  "name": "city-law-firm-virtual-office",
+  "version": "1.0.0",
+  "description": "Virtual Office Management System for City Law Firm - Telegram Mini App",
+  "author": "MiniMax Agent",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/citylawfirm/virtual-office"
+  },
+  "keywords": [
+    "telegram",
+    "mini-app",
+    "law-firm",
+    "case-management",
+    "virtual-office",
+    "onboarding",
+    "legal-tech"
+  ],
+  "scripts": {
+    "serve": "python -m http.server 8000",
+    "deploy": "rsync -avz ./ user@server:/var/www/html/city_law_firm/"
+  },
+  "features": [
+    "Automated staff onboarding (30 members capacity)",
+    "Case management and tracking",
+    "Court date reminders (24h and 1h alerts)",
+    "Time and billing tracking",
+    "Department organization (6 departments)",
+    "Compliance monitoring",
+    "Leave request management",
+    "Notifications board",
+    "Document repository",
+    "Mobile-responsive design",
+    "Telegram Web App integration"
+  ],
+  "departments": {
+    "Partners & Management": 3,
+    "Litigation Department": 8,
+    "Corporate Law": 6,
+    "Family Law": 4,
+    "Criminal Defense": 5,
+    "Administration & HR": 4
+  },
+  "bots": [
+    "@CaseManagerBot - Case tracking and management",
+    "@CourtDateBot - Court appearance reminders",
+    "@ClientUpdateBot - Client communication tracking",
+    "@BillingBot - Time tracking and billing",
+    "@ComplianceBot - Compliance monitoring",
+    "@HRBot - HR services",
+    "@LeaveTrackerBot - Leave management"
+  ],
+  "requirements": {
+    "python": ">=3.9",
+    "telegram": "Telegram Bot API",
+    "database": "PostgreSQL or SQLite",
+    "webserver": "Nginx/Apache with SSL"
+  }
+}
