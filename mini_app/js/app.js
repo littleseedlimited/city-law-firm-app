@@ -5,119 +5,164 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
-// Sample data - in production, this would come from API
-const userData = {
-    name: "John Doe",
-    position: "Associate Attorney",
-    department: "Litigation Department",
-    email: "john.doe@citylawfirm.com",
-    phone: "+1 (555) 123-4567",
-    employeeId: "CLF-2025-042",
-    specialization: "Civil Litigation",
-    barNumber: "NY-123456",
-    joinDate: "January 15, 2023"
-};
+// API Configuration
+const API_BASE_URL = 'https://tomoko-pericarditic-regretfully.ngrok-free.dev/api';
+const USER_ID = tg.initDataUnsafe?.user?.id || null;
 
-const statsData = {
-    activeCases: 12,
-    courtDates: 3,
-    billableHours: 142.5
-};
+// Data storage
+let userData = null;
+let statsData = { activeCases: 0, courtDates: 0, billableHours: 0 };
+let agendaData = [];
+let casesData = [];
+let notificationsData = [];
+let staffData = [];
 
-const agendaData = [
-    {
-        time: "09:00 AM",
-        title: "Case Review Meeting",
-        description: "Johnson vs. Smith - Strategy discussion",
-        type: "meeting"
-    },
-    {
-        time: "11:30 AM",
-        title: "Court Appearance",
-        description: "Manhattan District Court - Motion hearing",
-        type: "court"
-    },
-    {
-        time: "02:00 PM",
-        title: "Client Consultation",
-        description: "Initial consultation - Estate planning",
-        type: "client"
-    },
-    {
-        time: "04:30 PM",
-        title: "Deadline: Filing",
-        description: "Submit discovery documents - Case #CL-2025-089",
-        type: "deadline"
+// Fetch user profile
+async function fetchUserProfile() {
+    if (!USER_ID) return;
+    try {
+        const response = await fetch(`${API_BASE_URL}/user/${USER_ID}`);
+        if (response.ok) {
+            const data = await response.json();
+            userData = {
+                name: data.full_name,
+                position: data.position,
+                department: data.departments,
+                email: data.email,
+                phone: data.phone,
+                employeeId: `CLF-${data.id}`,
+                specialization: data.role, // Mapping role to specialization for now
+                barNumber: "N/A", // Not in API yet
+                joinDate: "N/A" // Not in API yet
+            };
+            return userData;
+        }
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
     }
-];
+    return null;
+}
 
-const notificationsData = [
-    {
-        title: "New Case Assignment",
-        message: "You've been assigned to Case #CL-2025-156 (Corporate Merger)",
-        time: "10 minutes ago",
-        urgent: false
-    },
-    {
-        title: "Court Date Reminder",
-        message: "Court appearance tomorrow at 11:30 AM - Manhattan District Court",
-        time: "2 hours ago",
-        urgent: true
-    },
-    {
-        title: "Department Meeting",
-        message: "Litigation team weekly sync - Friday 3:00 PM",
-        time: "5 hours ago",
-        urgent: false
+// Fetch cases
+async function fetchCases() {
+    if (!USER_ID) return [];
+    try {
+        const response = await fetch(`${API_BASE_URL}/cases/${USER_ID}`);
+        if (response.ok) {
+            const data = await response.json();
+            casesData = (data.cases || []).map(c => ({
+                id: c.id,
+                caseNumber: c.case_number,
+                title: c.title,
+                client: c.client_name,
+                type: c.case_type,
+                status: c.status,
+                priority: c.priority,
+                nextCourtDate: c.next_court_date,
+                deadline: c.deadline
+            }));
+            statsData.activeCases = casesData.filter(c => c.status === 'active').length;
+            return casesData;
+        }
+    } catch (error) {
+        console.error('Error fetching cases:', error);
     }
-];
+    return [];
+}
 
-const casesData = [
-    {
-        id: 1,
-        caseNumber: "CL-2025-089",
-        title: "Johnson vs. Smith",
-        client: "Michael Johnson",
-        type: "Litigation",
-        status: "active",
-        priority: "high",
-        nextCourtDate: "2025-11-15",
-        deadline: "2025-11-11"
-    },
-    {
-        id: 2,
-        caseNumber: "CL-2025-156",
-        title: "Corporate Merger - TechCorp",
-        client: "TechCorp Inc.",
-        type: "Corporate",
-        status: "open",
-        priority: "urgent",
-        nextCourtDate: null,
-        deadline: "2025-11-20"
-    },
-    {
-        id: 3,
-        caseNumber: "CL-2025-034",
-        title: "Estate Planning - Roberts",
-        client: "Sarah Roberts",
-        type: "Family",
-        status: "active",
-        priority: "normal",
-        nextCourtDate: null,
-        deadline: "2025-11-30"
-    },
-    {
-        id: 4,
-        caseNumber: "CL-2025-123",
-        title: "Criminal Defense - Williams",
-        client: "James Williams",
-        type: "Criminal",
-        status: "pending",
-        priority: "urgent",
-        nextCourtDate: "2025-11-18",
-        deadline: "2025-11-12"
+// Fetch agenda
+async function fetchAgenda() {
+    if (!USER_ID) return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
+    try {
+        const response = await fetch(`${API_BASE_URL}/agenda/${USER_ID}`);
+        if (response.ok) {
+            const data = await response.json();
+            statsData.courtDates = data.court_dates?.length || 0;
+            statsData.billableHours = data.total_hours || 0;
+
+            // Map to agenda items for display
+            agendaData = [];
+
+            // Add court dates
+            if (data.court_dates) {
+                data.court_dates.forEach(cd => {
+                    const date = new Date(cd.hearing_date);
+                    agendaData.push({
+                        time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        title: "Court Appearance",
+                        description: `${cd.court_name} - ${cd.purpose || 'Hearing'}`,
+                        type: "court"
+                    });
+                });
+            }
+
+            // Add tasks
+            if (data.tasks) {
+                data.tasks.forEach(t => {
+                    agendaData.push({
+                        time: "Anytime",
+                        title: "Task",
+                        description: t.title,
+                        type: "deadline"
+                    });
+                });
+            }
+
+            return data;
+        }
+    } catch (error) {
+        console.error('Error fetching agenda:', error);
     }
-];
+    return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
+}
+
+// Fetch notifications
+async function fetchNotifications() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/notifications`);
+        if (response.ok) {
+            const data = await response.json();
+            notificationsData = (data.notifications || []).map(n => ({
+                id: n.id,
+                title: n.title,
+                message: n.message,
+                time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                type: n.priority === 'urgent' ? 'alert' : 'info',
+                icon: n.priority === 'urgent' ? '🚨' : '📢',
+                urgent: n.priority === 'urgent'
+            }));
+            return notificationsData;
+        }
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    }
+    return [];
+}
+
+// Fetch staff
+async function fetchStaff() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/staff`);
+        if (response.ok) {
+            const data = await response.json();
+            staffData = (data.staff || []).map(s => ({
+                id: s.id,
+                name: s.full_name,
+                role: s.position,
+                photo: s.photo_file_id ? `https://api.telegram.org/file/bot${tg.initDataUnsafe?.hash}/${s.photo_file_id}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(s.full_name)}&background=3b82f6&color=fff`,
+                status: s.is_online ? 'online' : 'offline',
+                location: s.latitude ? 'Location Shared' : 'Unknown',
+                lastSeen: s.last_seen ? new Date(s.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown'
+            }));
+            return staffData;
+        }
+    } catch (error) {
+        console.error('Error fetching staff:', error);
+    }
+    return [];
+}
+
+// Mock data removed - using API data
 
 const departmentsData = [
     {
@@ -175,33 +220,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 100);
 });
 
-function initializeApp() {
-    // Set user data with animation
-    setTimeout(() => {
-        document.getElementById('userName').textContent = userData.name;
-        document.getElementById('userRole').textContent = `${userData.position} - ${userData.department}`;
-    }, 200);
+// Initialize app
+async function initializeApp() {
+    // Show loading state
+    document.body.style.opacity = '0.7';
 
-    // Animate stats with counting effect
-    animateValue('activeCases', 0, statsData.activeCases, 1000);
-    animateValue('courtDates', 0, statsData.courtDates, 1000);
-    animateValue('billableHours', 0, statsData.billableHours, 1000, true);
+    // Fetch all data
+    await Promise.all([
+        fetchUserProfile(),
+        fetchCases(),
+        fetchAgenda()
+    ]);
 
-    // Render sections
+    // Render UI with real data
+    renderProfile();
+    renderStats();
     renderAgenda();
-    renderNotifications();
     renderCases();
     renderDepartments();
-    renderProfile();
+    renderStaff();
+    renderNotifications();
 
-    // Setup tab navigation
-    setupTabNavigation();
+    // Setup event listeners
+    setupEventListeners();
 
-    // Setup Telegram theme
+    // Apply theme
     applyTelegramTheme();
 
     // Add scroll animations
     setupScrollAnimations();
+
+    // Hide loading state
+    document.body.style.opacity = '1';
+}
+
+function renderNotifications() {
+    const list = document.getElementById('notificationsList');
+    if (!list) return;
+
+    // Get broadcast from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const broadcastMsg = urlParams.get('broadcast');
+    const broadcastTime = urlParams.get('time');
+
+    let notifications = [...notificationsData];
+
+    // Add broadcast if exists and not already in list (simple check)
+    if (broadcastMsg) {
+        notifications.unshift({
+            id: 'broadcast',
+            title: '📢 System Broadcast',
+            message: decodeURIComponent(broadcastMsg),
+            time: broadcastTime || 'Just now',
+            type: 'urgent',
+            icon: '📢'
+        });
+    }
+
+    if (notifications.length === 0) {
+        list.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 1rem;">No new notifications</p>';
+        return;
+    }
+
+    list.innerHTML = notifications.map(n => `
+        <div class="notification-item ${n.type}">
+            <div class="notification-icon">${n.icon}</div>
+            <div class="notification-content">
+                <div class="notification-header">
+                    <span class="notification-title">${n.title}</span>
+                    <span class="notification-time">${n.time}</span>
+                </div>
+                <p class="notification-message">${n.message}</p>
+            </div>
+        </div>
+    `).join('');
 }
 
 // Animate number counting
@@ -302,6 +394,50 @@ function renderNotifications() {
             </div>
         </div>
     `).join('');
+}
+
+function renderStaff() {
+    const container = document.getElementById('staffList');
+    container.innerHTML = staffData.map(staff => `
+        <div class="staff-card">
+            <div class="staff-photo-container">
+                <img src="${staff.photo}" alt="${staff.name}" class="staff-photo ${staff.status === 'online' ? 'online' : ''}">
+                <div class="status-indicator ${staff.status === 'online' ? 'online' : ''}"></div>
+            </div>
+            <div class="staff-name">${staff.name}</div>
+            <div class="staff-role">${staff.role}</div>
+            <div class="staff-location">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                ${staff.location}
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.5rem;">
+                Last seen: ${staff.lastSeen}
+            </div>
+        </div>
+    `).join('');
+}
+
+function refreshStaff() {
+    tg.HapticFeedback.impactOccurred('light');
+    // Simulate refresh
+    const btn = document.querySelector('#staff .btn-small');
+    const originalText = btn.textContent;
+    btn.textContent = 'Refreshing...';
+
+    setTimeout(() => {
+        // Randomly toggle some statuses for demo
+        staffData.forEach(staff => {
+            if (Math.random() > 0.7) {
+                staff.status = staff.status === 'online' ? 'offline' : 'online';
+                staff.lastSeen = staff.status === 'online' ? 'Just now' : '10 mins ago';
+            }
+        });
+        renderStaff();
+        btn.textContent = originalText;
+    }, 1000);
 }
 
 function renderCases() {
@@ -436,42 +572,17 @@ function submitNewCase(event) {
         action: 'new_case',
         case_number: form.querySelector('input[placeholder="CL-2025-XXX"]').value,
         client_name: form.querySelector('input[placeholder="Full name"]').value,
-        case_type: form.querySelector('select').value,
-        priority: form.querySelectorAll('select')[1].value
+        case_type: form.querySelectorAll('select')[0].value,
+        department: form.querySelectorAll('select')[1].value,
+        priority: form.querySelectorAll('select')[2].value,
+        assigned_to: form.querySelector('input[placeholder="Attorney Name"]').value
     };
     tg.sendData(JSON.stringify(data));
     tg.close();
 }
 
-function submitTimeEntry(event) {
-    event.preventDefault();
-    const form = event.target;
-    const data = {
-        action: 'log_time',
-        case_id: form.querySelector('select').value,
-        duration: form.querySelector('input[type="number"]').value,
-        activity_type: form.querySelectorAll('select')[1].value,
-        description: form.querySelector('textarea').value
-    };
-    tg.sendData(JSON.stringify(data));
-    tg.close();
-}
+// ... existing code ...
 
-function submitLeaveRequest(event) {
-    event.preventDefault();
-    const form = event.target;
-    const data = {
-        action: 'leave_request',
-        leave_type: form.querySelector('select').value,
-        start_date: form.querySelector('input[type="date"]').value,
-        end_date: form.querySelectorAll('input[type="date"]')[1].value,
-        reason: form.querySelector('textarea').value
-    };
-    tg.sendData(JSON.stringify(data));
-    tg.close();
-}
-
-// Update open functions to attach listeners
 function openNewCase() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Register New Case', `
@@ -494,6 +605,15 @@ function openNewCase() {
                 </select>
             </div>
             <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Department</label>
+                <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    <option>Litigation Department</option>
+                    <option>Corporate Law</option>
+                    <option>Family Law</option>
+                    <option>Criminal Defense</option>
+                </select>
+            </div>
+            <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
                 <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
                     <option>Normal</option>
@@ -501,6 +621,10 @@ function openNewCase() {
                     <option>Urgent</option>
                     <option>Low</option>
                 </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Responsible Person</label>
+                <input required type="text" placeholder="Attorney Name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Create Case</button>
         </form>
@@ -568,6 +692,272 @@ function openLeaveRequest() {
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Submit Request</button>
         </form>
     `);
+}
+
+function openAddAgenda() {
+    tg.HapticFeedback.impactOccurred('medium');
+    showModal('Add to Agenda', `
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
+            <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
+        </div>
+        
+        <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="type" id="agendaType" value="court">
+            
+            <div id="courtFields">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
+                    <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
+                    <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
+                    <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
+                    <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+            </div>
+
+            <div id="taskFields" style="display: none;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
+                    <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
+                    <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
+                    <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
+        </form>
+    `);
+}
+
+function toggleAgendaType(type) {
+    const btnCourt = document.getElementById('btnCourtDate');
+    const btnTask = document.getElementById('btnTask');
+    const courtFields = document.getElementById('courtFields');
+    const taskFields = document.getElementById('taskFields');
+    const agendaType = document.getElementById('agendaType');
+    const form = document.getElementById('agendaForm');
+
+    agendaType.value = type;
+
+    if (type === 'court') {
+        btnCourt.style.background = 'var(--primary-color)';
+        btnCourt.style.color = 'white';
+        btnCourt.style.border = 'none';
+
+        btnTask.style.background = 'var(--background)';
+        btnTask.style.color = 'var(--text-primary)';
+        btnTask.style.border = '1px solid var(--border-color)';
+
+        courtFields.style.display = 'block';
+        taskFields.style.display = 'none';
+
+        // Update required attributes
+        form.querySelector('input[name="case_number"]').required = true;
+        form.querySelector('input[name="court_name"]').required = true;
+        form.querySelector('input[name="date_time"]').required = true;
+        form.querySelector('input[name="purpose"]').required = true;
+
+        form.querySelector('input[name="title"]').required = false;
+        form.querySelector('input[name="deadline"]').required = false;
+
+    } else {
+        btnTask.style.background = 'var(--primary-color)';
+        btnTask.style.color = 'white';
+        btnTask.style.border = 'none';
+
+        btnCourt.style.background = 'var(--background)';
+        btnCourt.style.color = 'var(--text-primary)';
+        btnCourt.style.border = '1px solid var(--border-color)';
+
+        courtFields.style.display = 'none';
+        taskFields.style.display = 'block';
+
+        // Update required attributes
+        form.querySelector('input[name="case_number"]').required = false;
+        form.querySelector('input[name="court_name"]').required = false;
+        form.querySelector('input[name="date_time"]').required = false;
+        form.querySelector('input[name="purpose"]').required = false;
+
+        form.querySelector('input[name="title"]').required = true;
+        form.querySelector('input[name="deadline"]').required = true;
+    }
+}
+
+function submitAgendaItem(event) {
+    event.preventDefault();
+    const form = event.target;
+    const type = form.querySelector('#agendaType').value;
+
+    let data = {
+        action: 'new_agenda_item',
+        type: type
+    };
+
+    if (type === 'court') {
+        data.case_number = form.querySelector('input[name="case_number"]').value;
+        data.court_name = form.querySelector('input[name="court_name"]').value;
+        data.date_time = form.querySelector('input[name="date_time"]').value;
+        data.purpose = form.querySelector('input[name="purpose"]').value;
+    } else {
+        data.title = form.querySelector('input[name="title"]').value;
+        data.deadline = form.querySelector('input[name="deadline"]').value;
+        data.priority = form.querySelector('select[name="priority"]').value;
+    }
+
+    tg.sendData(JSON.stringify(data));
+    tg.close();
+}
+
+function openAddAgenda() {
+    tg.HapticFeedback.impactOccurred('medium');
+    showModal('Add to Agenda', `
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
+            <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
+        </div>
+        
+        <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
+            <input type="hidden" name="type" id="agendaType" value="court">
+            
+            <div id="courtFields">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
+                    <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
+                    <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
+                    <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
+                    <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+            </div>
+
+            <div id="taskFields" style="display: none;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
+                    <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
+                    <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
+                    <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
+        </form>
+    `);
+}
+
+function toggleAgendaType(type) {
+    const btnCourt = document.getElementById('btnCourtDate');
+    const btnTask = document.getElementById('btnTask');
+    const courtFields = document.getElementById('courtFields');
+    const taskFields = document.getElementById('taskFields');
+    const agendaType = document.getElementById('agendaType');
+    const form = document.getElementById('agendaForm');
+
+    agendaType.value = type;
+
+    if (type === 'court') {
+        btnCourt.style.background = 'var(--primary-color)';
+        btnCourt.style.color = 'white';
+        btnCourt.style.border = 'none';
+
+        btnTask.style.background = 'var(--background)';
+        btnTask.style.color = 'var(--text-primary)';
+        btnTask.style.border = '1px solid var(--border-color)';
+
+        courtFields.style.display = 'block';
+        taskFields.style.display = 'none';
+
+        // Update required attributes
+        form.querySelector('input[name="case_number"]').required = true;
+        form.querySelector('input[name="court_name"]').required = true;
+        form.querySelector('input[name="date_time"]').required = true;
+        form.querySelector('input[name="purpose"]').required = true;
+
+        form.querySelector('input[name="title"]').required = false;
+        form.querySelector('input[name="deadline"]').required = false;
+
+    } else {
+        btnTask.style.background = 'var(--primary-color)';
+        btnTask.style.color = 'white';
+        btnTask.style.border = 'none';
+
+        btnCourt.style.background = 'var(--background)';
+        btnCourt.style.color = 'var(--text-primary)';
+        btnCourt.style.border = '1px solid var(--border-color)';
+
+        courtFields.style.display = 'none';
+        taskFields.style.display = 'block';
+
+        // Update required attributes
+        form.querySelector('input[name="case_number"]').required = false;
+        form.querySelector('input[name="court_name"]').required = false;
+        form.querySelector('input[name="date_time"]').required = false;
+        form.querySelector('input[name="purpose"]').required = false;
+
+        form.querySelector('input[name="title"]').required = true;
+        form.querySelector('input[name="deadline"]').required = true;
+    }
+}
+
+function submitAgendaItem(event) {
+    event.preventDefault();
+    const form = event.target;
+    const type = form.querySelector('#agendaType').value;
+
+    let data = {
+        action: 'new_agenda_item',
+        type: type
+    };
+
+    if (type === 'court') {
+        data.case_number = form.querySelector('input[name="case_number"]').value;
+        data.court_name = form.querySelector('input[name="court_name"]').value;
+        data.date_time = form.querySelector('input[name="date_time"]').value;
+        data.purpose = form.querySelector('input[name="purpose"]').value;
+    } else {
+        data.title = form.querySelector('input[name="title"]').value;
+        data.deadline = form.querySelector('input[name="deadline"]').value;
+        data.priority = form.querySelector('select[name="priority"]').value;
+    }
+
+    tg.sendData(JSON.stringify(data));
+    tg.close();
 }
 
 // ... existing viewCaseDetails ...
