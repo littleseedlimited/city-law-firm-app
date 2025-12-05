@@ -21,7 +21,9 @@ let staffData = [];
 async function fetchUserProfile() {
     if (!USER_ID) return;
     try {
-        const response = await fetch(`${API_BASE_URL}/user/${USER_ID}`);
+        const response = await fetch(`${API_BASE_URL}/user/${USER_ID}`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (response.ok) {
             const data = await response.json();
             userData = {
@@ -47,7 +49,9 @@ async function fetchUserProfile() {
 async function fetchCases() {
     if (!USER_ID) return [];
     try {
-        const response = await fetch(`${API_BASE_URL}/cases/${USER_ID}`);
+        const response = await fetch(`${API_BASE_URL}/cases/${USER_ID}`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (response.ok) {
             const data = await response.json();
             casesData = (data.cases || []).map(c => ({
@@ -74,7 +78,9 @@ async function fetchCases() {
 async function fetchAgenda() {
     if (!USER_ID) return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
     try {
-        const response = await fetch(`${API_BASE_URL}/agenda/${USER_ID}`);
+        const response = await fetch(`${API_BASE_URL}/agenda/${USER_ID}`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (response.ok) {
             const data = await response.json();
             statsData.courtDates = data.court_dates?.length || 0;
@@ -119,7 +125,9 @@ async function fetchAgenda() {
 // Fetch notifications
 async function fetchNotifications() {
     try {
-        const response = await fetch(`${API_BASE_URL}/notifications`);
+        const response = await fetch(`${API_BASE_URL}/notifications`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (response.ok) {
             const data = await response.json();
             notificationsData = (data.notifications || []).map(n => ({
@@ -142,7 +150,9 @@ async function fetchNotifications() {
 // Fetch staff
 async function fetchStaff() {
     try {
-        const response = await fetch(`${API_BASE_URL}/staff`);
+        const response = await fetch(`${API_BASE_URL}/staff`, {
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
         if (response.ok) {
             const data = await response.json();
             staffData = (data.staff || []).map(s => ({
