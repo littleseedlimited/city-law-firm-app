@@ -1098,33 +1098,172 @@ tg.BackButton.onClick(() => {
 
 // Action button handlers
 function openNewCase() {
-    // Switch to Cases tab
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <h3>Register New Case</h3>
+        <form id="newCaseForm" class="modal-form">
+            <div class="form-group">
+                <label>Case Number</label>
+                <input type="text" id="caseNumber" placeholder="CL-2025-XXX" required>
+            </div>
+            <div class="form-group">
+                <label>Client Name</label>
+                <input type="text" id="clientName" placeholder="Enter client name" required>
+            </div>
+            <div class="form-group">
+                <label>Case Type</label>
+                <select id="caseType" required>
+                    <option value="">Select type</option>
+                    <option value="civil">Civil</option>
+                    <option value="criminal">Criminal</option>
+                    <option value="corporate">Corporate</option>
+                    <option value="family">Family Law</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="caseDescription" rows="3" placeholder="Brief description"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Register Case</button>
+        </form>
+    `;
 
-    const casesTab = document.querySelector('[data-tab="cases"]');
-    if (casesTab) {
-        casesTab.classList.add('active');
-        document.getElementById('cases').classList.add('active');
-    }
+    document.getElementById('modalOverlay').classList.add('active');
+
+    document.getElementById('newCaseForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        tg.HapticFeedback.notificationOccurred('success');
+        tg.showAlert('Case registered successfully!');
+        closeModal();
+    });
 
     tg.HapticFeedback.impactOccurred('medium');
-    tg.showAlert('Case registration form will be added here');
 }
 
 function openTimeEntry() {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <h3>Log Billable Hours</h3>
+        <form id="timeEntryForm" class="modal-form">
+            <div class="form-group">
+                <label>Case Number</label>
+                <input type="text" id="timeCaseNumber" placeholder="CL-2025-XXX" required>
+            </div>
+            <div class="form-group">
+                <label>Hours</label>
+                <input type="number" id="hours" step="0.5" min="0.5" placeholder="e.g., 2.5" required>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="timeDate" value="${new Date().toISOString().split('T')[0]}" required>
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="timeDescription" rows="3" placeholder="What did you work on?" required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Log Time</button>
+        </form>
+    `;
+
+    document.getElementById('modalOverlay').classList.add('active');
+
+    document.getElementById('timeEntryForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        tg.HapticFeedback.notificationOccurred('success');
+        tg.showAlert('Time logged successfully!');
+        closeModal();
+    });
+
     tg.HapticFeedback.impactOccurred('medium');
-    tg.showAlert('Time entry form will be added here');
 }
 
 function openLeaveRequest() {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <h3>Request Leave</h3>
+        <form id="leaveRequestForm" class="modal-form">
+            <div class="form-group">
+                <label>Leave Type</label>
+                <select id="leaveType" required>
+                    <option value="">Select type</option>
+                    <option value="annual">Annual Leave</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="personal">Personal Leave</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="leaveStartDate" required>
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" id="leaveEndDate" required>
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <textarea id="leaveReason" rows="3" placeholder="Reason for leave" required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Submit Request</button>
+        </form>
+    `;
+
+    document.getElementById('modalOverlay').classList.add('active');
+
+    document.getElementById('leaveRequestForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        tg.HapticFeedback.notificationOccurred('success');
+        tg.showAlert('Leave request submitted!');
+        closeModal();
+    });
+
     tg.HapticFeedback.impactOccurred('medium');
-    tg.showAlert('Leave request form will be added here');
 }
 
 function openAddAgenda() {
+    const modalBody = document.getElementById('modalBody');
+    modalBody.innerHTML = `
+        <h3>Add to Agenda</h3>
+        <form id="addAgendaForm" class="modal-form">
+            <div class="form-group">
+                <label>Item Type</label>
+                <select id="agendaType" required>
+                    <option value="">Select type</option>
+                    <option value="court_date">Court Date</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="deadline">Deadline</option>
+                    <option value="task">Task</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="agendaTitle" placeholder="e.g., Client Meeting" required>
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="agendaDate" required>
+            </div>
+            <div class="form-group">
+                <label>Time</label>
+                <input type="time" id="agendaTime">
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="agendaNotes" rows="2" placeholder="Additional notes"></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Add to Agenda</button>
+        </form>
+    `;
+
+    document.getElementById('modalOverlay').classList.add('active');
+
+    document.getElementById('addAgendaForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        tg.HapticFeedback.notificationOccurred('success');
+        tg.showAlert('Added to agenda!');
+        closeModal();
+    });
+
     tg.HapticFeedback.impactOccurred('medium');
-    tg.showAlert('Add to agenda form will be added here');
 }
 
 console.log('City Law Firm Virtual Office initialized successfully!');
