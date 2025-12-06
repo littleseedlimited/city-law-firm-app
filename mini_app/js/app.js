@@ -1100,31 +1100,34 @@ tg.BackButton.onClick(() => {
 function openNewCase() {
     const modalBody = document.getElementById('modalBody');
     modalBody.innerHTML = `
-        <h3>Register New Case</h3>
+        <h3>📝 Register New Case</h3>
         <form id="newCaseForm" class="modal-form">
-            <div class="form-group">
-                <label>Case Number</label>
-                <input type="text" id="caseNumber" placeholder="CL-2025-XXX" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Case Number</label>
+                    <input type="text" id="caseNumber" placeholder="CL-2025-XXX" required>
+                </div>
+                <div class="form-group">
+                    <label>Case Type</label>
+                    <select id="caseType" required>
+                        <option value="">Select type</option>
+                        <option value="civil">Civil Law</option>
+                        <option value="criminal">Criminal Law</option>
+                        <option value="corporate">Corporate Law</option>
+                        <option value="family">Family Law</option>
+                        <option value="property">Property Law</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group">
                 <label>Client Name</label>
-                <input type="text" id="clientName" placeholder="Enter client name" required>
+                <input type="text" id="clientName" placeholder="Enter full client name" required>
             </div>
             <div class="form-group">
-                <label>Case Type</label>
-                <select id="caseType" required>
-                    <option value="">Select type</option>
-                    <option value="civil">Civil</option>
-                    <option value="criminal">Criminal</option>
-                    <option value="corporate">Corporate</option>
-                    <option value="family">Family Law</option>
-                </select>
+                <label>Case Description</label>
+                <textarea id="caseDescription" rows="4" placeholder="Provide a brief description of the case..."></textarea>
             </div>
-            <div class="form-group">
-                <label>Description</label>
-                <textarea id="caseDescription" rows="3" placeholder="Brief description"></textarea>
-            </div>
-            <button type="submit" class="btn-primary">Register Case</button>
+            <button type="submit" class="btn-primary"><span>Register Case</span></button>
         </form>
     `;
 
@@ -1142,26 +1145,29 @@ function openNewCase() {
 
 function openTimeEntry() {
     const modalBody = document.getElementById('modalBody');
+    const today = new Date().toISOString().split('T')[0];
     modalBody.innerHTML = `
-        <h3>Log Billable Hours</h3>
+        <h3>⏱️ Log Billable Hours</h3>
         <form id="timeEntryForm" class="modal-form">
             <div class="form-group">
                 <label>Case Number</label>
                 <input type="text" id="timeCaseNumber" placeholder="CL-2025-XXX" required>
             </div>
-            <div class="form-group">
-                <label>Hours</label>
-                <input type="number" id="hours" step="0.5" min="0.5" placeholder="e.g., 2.5" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Hours Worked</label>
+                    <input type="number" id="hours" step="0.25" min="0.25" max="24" placeholder="2.5" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="timeDate" value="${today}" required>
+                </div>
             </div>
             <div class="form-group">
-                <label>Date</label>
-                <input type="date" id="timeDate" value="${new Date().toISOString().split('T')[0]}" required>
+                <label>Work Description</label>
+                <textarea id="timeDescription" rows="4" placeholder="Describe the work performed..." required></textarea>
             </div>
-            <div class="form-group">
-                <label>Description</label>
-                <textarea id="timeDescription" rows="3" placeholder="What did you work on?" required></textarea>
-            </div>
-            <button type="submit" class="btn-primary">Log Time</button>
+            <button type="submit" class="btn-primary"><span>Log Time Entry</span></button>
         </form>
     `;
 
@@ -1179,31 +1185,39 @@ function openTimeEntry() {
 
 function openLeaveRequest() {
     const modalBody = document.getElementById('modalBody');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+
     modalBody.innerHTML = `
-        <h3>Request Leave</h3>
+        <h3>📅 Request Leave</h3>
         <form id="leaveRequestForm" class="modal-form">
             <div class="form-group">
                 <label>Leave Type</label>
                 <select id="leaveType" required>
-                    <option value="">Select type</option>
+                    <option value="">Select leave type</option>
                     <option value="annual">Annual Leave</option>
                     <option value="sick">Sick Leave</option>
                     <option value="personal">Personal Leave</option>
+                    <option value="emergency">Emergency Leave</option>
+                    <option value="unpaid">Unpaid Leave</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" id="leaveStartDate" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="leaveStartDate" min="${minDate}" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="leaveEndDate" min="${minDate}" required>
+                </div>
             </div>
             <div class="form-group">
-                <label>End Date</label>
-                <input type="date" id="leaveEndDate" required>
+                <label>Reason for Leave</label>
+                <textarea id="leaveReason" rows="4" placeholder="Please provide a reason for your leave request..." required></textarea>
             </div>
-            <div class="form-group">
-                <label>Reason</label>
-                <textarea id="leaveReason" rows="3" placeholder="Reason for leave" required></textarea>
-            </div>
-            <button type="submit" class="btn-primary">Submit Request</button>
+            <button type="submit" class="btn-primary"><span>Submit Leave Request</span></button>
         </form>
     `;
 
@@ -1221,36 +1235,41 @@ function openLeaveRequest() {
 
 function openAddAgenda() {
     const modalBody = document.getElementById('modalBody');
+    const today = new Date().toISOString().split('T')[0];
+
     modalBody.innerHTML = `
-        <h3>Add to Agenda</h3>
+        <h3>📋 Add to Agenda</h3>
         <form id="addAgendaForm" class="modal-form">
             <div class="form-group">
                 <label>Item Type</label>
                 <select id="agendaType" required>
-                    <option value="">Select type</option>
-                    <option value="court_date">Court Date</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="deadline">Deadline</option>
-                    <option value="task">Task</option>
+                    <option value="">Select item type</option>
+                    <option value="court_date">⚖️ Court Date</option>
+                    <option value="meeting">🤝 Client Meeting</option>
+                    <option value="deadline">⏰ Deadline</option>
+                    <option value="task">✅ Task</option>
+                    <option value="hearing">🎯 Hearing</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Title</label>
-                <input type="text" id="agendaTitle" placeholder="e.g., Client Meeting" required>
+                <input type="text" id="agendaTitle" placeholder="e.g., Client Consultation" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="agendaDate" min="${today}" required>
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="agendaTime" required>
+                </div>
             </div>
             <div class="form-group">
-                <label>Date</label>
-                <input type="date" id="agendaDate" required>
+                <label>Additional Notes</label>
+                <textarea id="agendaNotes" rows="3" placeholder="Add any relevant notes or details..."></textarea>
             </div>
-            <div class="form-group">
-                <label>Time</label>
-                <input type="time" id="agendaTime">
-            </div>
-            <div class="form-group">
-                <label>Notes</label>
-                <textarea id="agendaNotes" rows="2" placeholder="Additional notes"></textarea>
-            </div>
-            <button type="submit" class="btn-primary">Add to Agenda</button>
+            <button type="submit" class="btn-primary"><span>Add to Agenda</span></button>
         </form>
     `;
 
@@ -1267,4 +1286,3 @@ function openAddAgenda() {
 }
 
 console.log('City Law Firm Virtual Office initialized successfully!');
-
