@@ -262,6 +262,26 @@ async function initializeApp() {
 
     // Hide loading state
     document.body.style.opacity = '1';
+
+    // Check URL parameters for specific views
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get('view');
+
+    if (view === 'newcase') {
+        // Switch to Cases tab and show new case form
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        const casesTab = document.querySelector('[data-tab="cases"]');
+        if (casesTab) {
+            casesTab.classList.add('active');
+            document.getElementById('cases').classList.add('active');
+        }
+
+        // Scroll to top and trigger haptic feedback
+        window.scrollTo(0, 0);
+        tg.HapticFeedback.impactOccurred('medium');
+    }
 }
 
 function renderNotifications() {
