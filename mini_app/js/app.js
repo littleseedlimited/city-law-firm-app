@@ -1096,5 +1096,36 @@ tg.BackButton.onClick(() => {
     tg.close();
 });
 
+// Action button handlers
+function openNewCase() {
+    // Switch to Cases tab
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+    const casesTab = document.querySelector('[data-tab="cases"]');
+    if (casesTab) {
+        casesTab.classList.add('active');
+        document.getElementById('cases').classList.add('active');
+    }
+
+    tg.HapticFeedback.impactOccurred('medium');
+    tg.showAlert('Case registration form will be added here');
+}
+
+function openTimeEntry() {
+    tg.HapticFeedback.impactOccurred('medium');
+    tg.showAlert('Time entry form will be added here');
+}
+
+function openLeaveRequest() {
+    tg.HapticFeedback.impactOccurred('medium');
+    tg.showAlert('Leave request form will be added here');
+}
+
+function openAddAgenda() {
+    tg.HapticFeedback.impactOccurred('medium');
+    tg.showAlert('Add to agenda form will be added here');
+}
+
 console.log('City Law Firm Virtual Office initialized successfully!');
 
