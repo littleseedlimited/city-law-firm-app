@@ -365,7 +365,7 @@ function setupScrollAnimations() {
         el.style.transform = 'translateY(20px)';
         el.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
         observer.observe(el);
-    }); \
+    });
 }
 
 function setupEventListeners() {
