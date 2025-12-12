@@ -573,6 +573,10 @@ function renderStaff() {
             <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.5rem;">
                 Last seen: ${staff.lastSeen}
             </div>
+            <div class="card-actions" style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
+                <button class="btn-small" onclick="editStaff(${staff.id})" style="flex: 1; font-size: 0.75rem; padding: 0.25rem;">Edit</button>
+                <button class="btn-small" onclick="deleteStaff(${staff.id})" style="flex: 1; font-size: 0.75rem; padding: 0.25rem; color: var(--danger-color); border-color: var(--danger-color);">Delete</button>
+            </div>
         </div>
     `).join('');
 }
@@ -581,20 +585,27 @@ function refreshStaff() {
     tg.HapticFeedback.impactOccurred('light');
     // Simulate refresh
     const btn = document.querySelector('#staff .btn-small');
-    const originalText = btn.textContent;
-    btn.textContent = 'Refreshing...';
+    if (btn) {
+        const originalText = btn.textContent;
+        btn.textContent = 'Refreshing...';
+        setTimeout(() => btn.textContent = originalText, 1000);
+    }
 
+    // In real app: fetchStaff().then(renderStaff);
     setTimeout(() => {
-        // Randomly toggle some statuses for demo
-        staffData.forEach(staff => {
-            if (Math.random() > 0.7) {
-                staff.status = staff.status === 'online' ? 'offline' : 'online';
-                staff.lastSeen = staff.status === 'online' ? 'Just now' : '10 mins ago';
-            }
-        });
+        if (userData) renderStaff();
+    }, 500);
+}
+
+function editStaff(id) {
+    tg.showAlert(`Edit Staff ID: ${id}`);
+}
+
+function deleteStaff(id) {
+    if (confirm('Remove this staff member?')) {
+        staffData = staffData.filter(s => s.id !== id);
         renderStaff();
-        btn.textContent = originalText;
-    }, 1000);
+    }
 }
 
 function renderCases() {
@@ -632,7 +643,7 @@ function renderCases() {
                             <line x1="8" y1="2" x2="8" y2="6"/>
                             <line x1="3" y1="10" x2="21" y2="10"/>
                         </svg>
-                        Court: ${formatDate(caseItem.nextCourtDate)}
+                        ${formatDate(caseItem.nextCourtDate)}
                     </span>
                     ` : ''}
                     <span>
@@ -643,12 +654,28 @@ function renderCases() {
                         Due: ${formatDate(caseItem.deadline)}
                     </span>
                 </div>
+                <div class="card-actions" style="display: flex; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+                    <button class="btn-small" onclick="event.stopPropagation(); editCase(${caseItem.id})" style="flex: 1;">Edit</button>
+                    <button class="btn-small" onclick="event.stopPropagation(); deleteCase(${caseItem.id})" style="flex: 1; color: var(--danger-color); border-color: var(--danger-color); background: #fff;">Delete</button>
+                </div>
             </div>
         `;
-
     }).join('');
 
     casesList.innerHTML = casesHTML;
+}
+
+function editCase(id) {
+    tg.showAlert(`Edit Case ID: ${id} - Functionality coming soon`);
+}
+
+function deleteCase(id) {
+    if (confirm('Are you sure you want to delete this case?')) {
+        // In real app, call API
+        casesData = casesData.filter(c => c.id !== id);
+        renderCases();
+        tg.HapticFeedback.notificationOccurred('success');
+    }
 }
 
 function renderStats() {
@@ -661,7 +688,7 @@ function renderDepartments() {
     const departmentsList = document.getElementById('departmentsList');
 
     departmentsList.innerHTML = departmentsData.map(dept => `
-        < div class="department-card" onclick = "viewDepartment('${dept.name}')" >
+        <div class="department-card" onclick="viewDepartment('${dept.name}')">
             <div class="department-icon">${dept.icon}</div>
             <h3 class="department-name">${dept.name}</h3>
             <div class="department-members">${dept.members}/${dept.maxMembers} members</div>
@@ -670,7 +697,7 @@ function renderDepartments() {
                     <span class="channel-tag">${channel}</span>
                 `).join('')}
             </div>
-        </div >
+        </div>
         `).join('');
 }
 
@@ -713,8 +740,12 @@ function getPriorityBadge(priority) {
 }
 
 function formatDate(dateString) {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
 }
 
 function applyTelegramTheme() {
@@ -755,7 +786,7 @@ function submitNewCase(event) {
 function openNewCase() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Register New Case', `
-        < form onsubmit = "submitNewCase(event)" style = "display: flex; flex-direction: column; gap: 1rem;" >
+        <form onsubmit="submitNewCase(event)" style="display: flex; flex-direction: column; gap: 1rem;">
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
                 <input required type="text" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
@@ -796,14 +827,14 @@ function openNewCase() {
                 <input required type="text" placeholder="Attorney Name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Create Case</button>
-        </form >
+        </form>
         `);
 }
 
 function openTimeEntry() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Log Billable Time', `
-        < form onsubmit = "submitTimeEntry(event)" style = "display: flex; flex-direction: column; gap: 1rem;" >
+        <form onsubmit="submitTimeEntry(event)" style="display: flex; flex-direction: column; gap: 1rem;">
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case</label>
                 <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
@@ -829,14 +860,14 @@ function openTimeEntry() {
                 <textarea required rows="3" placeholder="Brief description of work performed..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; font-family: inherit;"></textarea>
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Log Time</button>
-        </form >
+        </form>
         `);
 }
 
 function openLeaveRequest() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Request Time Off', `
-        < form onsubmit = "submitLeaveRequest(event)" style = "display: flex; flex-direction: column; gap: 1rem;" >
+        <form onsubmit="submitLeaveRequest(event)" style="display: flex; flex-direction: column; gap: 1rem;">
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Leave Type</label>
                 <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
@@ -859,17 +890,17 @@ function openLeaveRequest() {
                 <textarea rows="3" placeholder="Brief explanation..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; font-family: inherit;"></textarea>
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Submit Request</button>
-        </form >
+        </form>
         `);
 }
 
 function openAddAgenda() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Add to Agenda', `
-        < div style = "display: flex; gap: 0.5rem; margin-bottom: 1rem;" >
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
             <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
             <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
-        </div >
+        </div>
 
         <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
             <input type="hidden" name="type" id="agendaType" value="court">
