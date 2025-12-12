@@ -42,7 +42,21 @@ async function fetchUserProfile() {
     } catch (error) {
         console.error('Error fetching user profile:', error);
     }
-    return null;
+    console.error('Error fetching user profile:', error);
+}
+// Fallback Mock Data
+userData = {
+    name: "John Doe",
+    position: "Senior Attorney",
+    department: "Litigation",
+    email: "john.doe@citylaw.com",
+    phone: "+1 (555) 123-4567",
+    employeeId: "CLF-1001",
+    specialization: "Corporate Litigation",
+    barNumber: "NY-12345",
+    joinDate: "2020-03-15"
+};
+return userData;
 }
 
 // Fetch cases
@@ -71,7 +85,17 @@ async function fetchCases() {
     } catch (error) {
         console.error('Error fetching cases:', error);
     }
-    return [];
+    console.error('Error fetching cases:', error);
+}
+// Fallback Mock Data
+casesData = [
+    { id: 1, caseNumber: 'CL-2025-001', title: 'Smith vs. Jones Corp', client: 'John Smith', type: 'Civil', status: 'active', priority: 'high', nextCourtDate: '2025-12-15T09:00:00', deadline: '2025-12-20T17:00:00' },
+    { id: 2, caseNumber: 'CL-2025-002', title: 'State vs. Doe', client: 'Jane Doe', type: 'Criminal', status: 'pending', priority: 'urgent', nextCourtDate: null, deadline: '2025-12-10T17:00:00' },
+    { id: 3, caseNumber: 'CL-2025-003', title: 'Real Estate Merger', client: 'Tech Properties', type: 'Corporate', status: 'active', priority: 'normal', nextCourtDate: null, deadline: '2026-01-15T17:00:00' },
+    { id: 4, caseNumber: 'CL-2025-004', title: 'Family Trust Setup', client: 'Robert Wilson', type: 'Family', status: 'closed', priority: 'low', nextCourtDate: null, deadline: null }
+];
+statsData.activeCases = casesData.filter(c => c.status === 'active').length;
+return casesData;
 }
 
 // Fetch agenda
@@ -119,7 +143,49 @@ async function fetchAgenda() {
     } catch (error) {
         console.error('Error fetching agenda:', error);
     }
-    return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
+    console.error('Error fetching agenda:', error);
+}
+// Fallback Mock Data
+const mockAgenda = {
+    court_dates: [
+        { hearing_date: '2025-12-12T10:00:00', court_name: 'District Court', purpose: 'Preliminary Hearing' },
+        { hearing_date: '2025-12-15T14:30:00', court_name: 'Superior Court', purpose: 'Case Management Conference' }
+    ],
+    tasks: [
+        { title: 'Draft Motion to Dismiss (Smith vs. Jones)' },
+        { title: 'Client Meeting: Tech Properties' }
+    ],
+    total_hours: 142.5
+};
+
+statsData.courtDates = mockAgenda.court_dates.length;
+statsData.billableHours = mockAgenda.total_hours;
+
+// Map to agenda items for display
+agendaData = [];
+if (mockAgenda.court_dates) {
+    mockAgenda.court_dates.forEach(cd => {
+        const date = new Date(cd.hearing_date);
+        agendaData.push({
+            time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            title: "Court Appearance",
+            description: `${cd.court_name} - ${cd.purpose || 'Hearing'}`,
+            type: "court"
+        });
+    });
+}
+if (mockAgenda.tasks) {
+    mockAgenda.tasks.forEach(t => {
+        agendaData.push({
+            time: "Anytime",
+            title: "Task",
+            description: t.title,
+            type: "deadline"
+        });
+    });
+}
+
+return mockAgenda;
 }
 
 // Fetch notifications
@@ -169,7 +235,16 @@ async function fetchStaff() {
     } catch (error) {
         console.error('Error fetching staff:', error);
     }
-    return [];
+    console.error('Error fetching staff:', error);
+}
+// Fallback Mock Data
+staffData = [
+    { id: 1, name: 'Sarah Parker', role: 'Senior Partner', photo: 'https://ui-avatars.com/api/?name=Sarah+Parker&background=3b82f6&color=fff', status: 'online', location: 'Office 301', lastSeen: 'Just now' },
+    { id: 2, name: 'James Wilson', role: 'Associate', photo: 'https://ui-avatars.com/api/?name=James+Wilson&background=10b981&color=fff', status: 'offline', location: 'Unknown', lastSeen: '15 mins ago' },
+    { id: 3, name: 'Emily Chen', role: 'Paralegal', photo: 'https://ui-avatars.com/api/?name=Emily+Chen&background=f59e0b&color=fff', status: 'online', location: 'Court House', lastSeen: '5 mins ago' },
+    { id: 4, name: 'Michael Ross', role: 'Junior Associate', photo: 'https://ui-avatars.com/api/?name=Michael+Ross&background=ef4444&color=fff', status: 'offline', location: 'Meeting Room 2', lastSeen: '1 hour ago' }
+];
+return staffData;
 }
 
 // Mock data removed - using API data
@@ -373,6 +448,38 @@ function setupEventListeners() {
     setupTabNavigation();
 
     // Add any other event listeners here
+
+    // Close modal when clicking outside
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+    }
+}
+
+function showModal(title, content) {
+    const modalBody = document.getElementById('modalBody');
+    const modalOverlay = document.getElementById('modalOverlay');
+
+    if (modalBody && modalOverlay) {
+        // Add header to content if not present in content string
+        let finalContent = content;
+        if (!content.includes('<h3>')) {
+            finalContent = `<h3>${title}</h3>` + content;
+        }
+        modalBody.innerHTML = finalContent;
+        modalOverlay.classList.add('active');
+    }
+}
+
+function closeModal() {
+    const modalOverlay = document.getElementById('modalOverlay');
+    if (modalOverlay) {
+        modalOverlay.classList.remove('active');
+    }
 }
 
 function setupTabNavigation() {
@@ -416,22 +523,8 @@ function renderAgenda() {
     `).join('');
 }
 
-function renderNotifications() {
-    const notificationsList = document.getElementById('notificationsList');
+// Duplicate renderNotifications removed
 
-    notificationsList.innerHTML = notificationsData.map(notif => `
-        <div class="notification-item ${notif.urgent ? 'urgent' : ''}">
-            <div class="notification-icon">
-                ${notif.urgent ? '🚨' : '📢'}
-            </div>
-            <div class="notification-content">
-                <h4>${notif.title}</h4>
-                <p>${notif.message}</p>
-                <div class="notification-time">${notif.time}</div>
-            </div>
-        </div>
-    `).join('');
-}
 
 function renderStaff() {
     const container = document.getElementById('staffList');
@@ -525,16 +618,24 @@ function renderCases() {
                 </div>
             </div>
         `;
+            </div >
+        `;
     }).join('');
 
     casesList.innerHTML = casesHTML;
+}
+
+function renderStats() {
+    animateValue('activeCases', 0, statsData.activeCases || 0, 1000);
+    animateValue('courtDates', 0, statsData.courtDates || 0, 1000);
+    animateValue('billableHours', 0, statsData.billableHours || 0, 1000, true);
 }
 
 function renderDepartments() {
     const departmentsList = document.getElementById('departmentsList');
 
     departmentsList.innerHTML = departmentsData.map(dept => `
-        <div class="department-card" onclick="viewDepartment('${dept.name}')">
+        < div class="department-card" onclick = "viewDepartment('${dept.name}')" >
             <div class="department-icon">${dept.icon}</div>
             <h3 class="department-name">${dept.name}</h3>
             <div class="department-members">${dept.members}/${dept.maxMembers} members</div>
@@ -543,20 +644,25 @@ function renderDepartments() {
                     <span class="channel-tag">${channel}</span>
                 `).join('')}
             </div>
-        </div>
-    `).join('');
+        </div >
+        `).join('');
 }
 
 function renderProfile() {
-    document.getElementById('profileName').textContent = userData.name;
-    document.getElementById('profilePosition').textContent = userData.position;
-    document.getElementById('profileEmail').textContent = userData.email;
-    document.getElementById('profilePhone').textContent = userData.phone;
-    document.getElementById('profileDepartment').textContent = userData.department;
-    document.getElementById('profileEmployeeId').textContent = userData.employeeId;
-    document.getElementById('profileSpecialization').textContent = userData.specialization;
-    document.getElementById('profileBarNumber').textContent = userData.barNumber;
-    document.getElementById('profileJoinDate').textContent = userData.joinDate;
+    if (!userData) {
+        // Fallback or loading state
+        document.getElementById('profileName').textContent = "Loading...";
+        return;
+    }
+    document.getElementById('profileName').textContent = userData.name || 'User';
+    document.getElementById('profilePosition').textContent = userData.position || 'N/A';
+    document.getElementById('profileEmail').textContent = userData.email || 'N/A';
+    document.getElementById('profilePhone').textContent = userData.phone || 'N/A';
+    document.getElementById('profileDepartment').textContent = userData.department || 'N/A';
+    document.getElementById('profileEmployeeId').textContent = userData.employeeId || 'N/A';
+    document.getElementById('profileSpecialization').textContent = userData.specialization || 'N/A';
+    document.getElementById('profileBarNumber').textContent = userData.barNumber || 'N/A';
+    document.getElementById('profileJoinDate').textContent = userData.joinDate || 'N/A';
 }
 
 // Helper functions
@@ -623,7 +729,7 @@ function submitNewCase(event) {
 function openNewCase() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Register New Case', `
-        <form onsubmit="submitNewCase(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        < form onsubmit = "submitNewCase(event)" style = "display: flex; flex-direction: column; gap: 1rem;" >
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
                 <input required type="text" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
@@ -664,14 +770,14 @@ function openNewCase() {
                 <input required type="text" placeholder="Attorney Name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Create Case</button>
-        </form>
-    `);
+        </form >
+        `);
 }
 
 function openTimeEntry() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Log Billable Time', `
-        <form onsubmit="submitTimeEntry(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        < form onsubmit = "submitTimeEntry(event)" style = "display: flex; flex-direction: column; gap: 1rem;" >
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case</label>
                 <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
@@ -697,14 +803,14 @@ function openTimeEntry() {
                 <textarea required rows="3" placeholder="Brief description of work performed..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; font-family: inherit;"></textarea>
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Log Time</button>
-        </form>
-    `);
+        </form >
+        `);
 }
 
 function openLeaveRequest() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Request Time Off', `
-        <form onsubmit="submitLeaveRequest(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        < form onsubmit = "submitLeaveRequest(event)" style = "display: flex; flex-direction: column; gap: 1rem;" >
             <div>
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Leave Type</label>
                 <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
@@ -727,60 +833,60 @@ function openLeaveRequest() {
                 <textarea rows="3" placeholder="Brief explanation..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; font-family: inherit;"></textarea>
             </div>
             <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Submit Request</button>
-        </form>
-    `);
+        </form >
+        `);
 }
 
 function openAddAgenda() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Add to Agenda', `
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        < div style = "display: flex; gap: 0.5rem; margin-bottom: 1rem;" >
             <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
             <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
-        </div>
-        
+        </div >
+
         <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
             <input type="hidden" name="type" id="agendaType" value="court">
-            
-            <div id="courtFields">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
-                    <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
-                    <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
-                    <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
-                    <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-            </div>
 
-            <div id="taskFields" style="display: none;">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
-                    <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                <div id="courtFields">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
+                        <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
+                        <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
+                        <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
+                        <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
-                    <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-                    <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-            </div>
 
-            <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
+                <div id="taskFields" style="display: none;">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
+                        <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
+                        <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
+                        <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
         </form>
     `);
 }
@@ -867,53 +973,53 @@ function submitAgendaItem(event) {
 function openAddAgenda() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Add to Agenda', `
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        < div style = "display: flex; gap: 0.5rem; margin-bottom: 1rem;" >
             <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
             <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
-        </div>
-        
+        </div >
+
         <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
             <input type="hidden" name="type" id="agendaType" value="court">
-            
-            <div id="courtFields">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
-                    <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
-                    <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
-                    <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
-                    <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-            </div>
 
-            <div id="taskFields" style="display: none;">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
-                    <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                <div id="courtFields">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
+                        <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
+                        <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
+                        <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
+                        <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
-                    <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-                    <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                </div>
-            </div>
 
-            <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
+                <div id="taskFields" style="display: none;">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
+                        <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
+                        <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
+                        <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
         </form>
     `);
 }
@@ -1005,7 +1111,7 @@ function viewCaseDetails(caseId) {
     if (!caseItem) return;
 
     showModal(caseItem.caseNumber, `
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        < div style = "display: flex; flex-direction: column; gap: 1rem;" >
             <h3 style="font-size: 1.125rem; margin-bottom: 0.5rem;">${caseItem.title}</h3>
             <div style="display: flex; gap: 0.5rem;">
                 ${getStatusBadge(caseItem.status)}
@@ -1021,8 +1127,8 @@ function viewCaseDetails(caseId) {
                 <button class="btn-primary" onclick="closeModal(); openTimeEntry();">Log Time</button>
                 <button class="btn-small">View Documents</button>
             </div>
-        </div>
-    `);
+        </div >
+        `);
 }
 
 // ... rest of existing code ...
@@ -1033,7 +1139,7 @@ function viewDepartment(deptName) {
     if (!dept) return;
 
     showModal(dept.name, `
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        < div style = "display: flex; flex-direction: column; gap: 1rem;" >
             <div style="font-size: 3rem; text-align: center;">${dept.icon}</div>
             <div style="text-align: center; color: var(--text-secondary);">
                 ${dept.members}/${dept.maxMembers} members
@@ -1050,8 +1156,8 @@ function viewDepartment(deptName) {
                 </div>
             </div>
             <button class="btn-primary" style="margin-top: 0.5rem;">View Team Directory</button>
-        </div>
-    `);
+        </div >
+        `);
 }
 
 function editProfile() {
@@ -1100,35 +1206,35 @@ tg.BackButton.onClick(() => {
 function openNewCase() {
     const modalBody = document.getElementById('modalBody');
     modalBody.innerHTML = `
-        <h3>📝 Register New Case</h3>
-        <form id="newCaseForm" class="modal-form">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Case Number</label>
-                    <input type="text" id="caseNumber" placeholder="CL-2025-XXX" required>
+        < h3 >📝 Register New Case</h3 >
+            <form id="newCaseForm" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Case Number</label>
+                        <input type="text" id="caseNumber" placeholder="CL-2025-XXX" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Case Type</label>
+                        <select id="caseType" required>
+                            <option value="">Select type</option>
+                            <option value="civil">Civil Law</option>
+                            <option value="criminal">Criminal Law</option>
+                            <option value="corporate">Corporate Law</option>
+                            <option value="family">Family Law</option>
+                            <option value="property">Property Law</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Case Type</label>
-                    <select id="caseType" required>
-                        <option value="">Select type</option>
-                        <option value="civil">Civil Law</option>
-                        <option value="criminal">Criminal Law</option>
-                        <option value="corporate">Corporate Law</option>
-                        <option value="family">Family Law</option>
-                        <option value="property">Property Law</option>
-                    </select>
+                    <label>Client Name</label>
+                    <input type="text" id="clientName" placeholder="Enter full client name" required>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Client Name</label>
-                <input type="text" id="clientName" placeholder="Enter full client name" required>
-            </div>
-            <div class="form-group">
-                <label>Case Description</label>
-                <textarea id="caseDescription" rows="4" placeholder="Provide a brief description of the case..."></textarea>
-            </div>
-            <button type="submit" class="btn-primary"><span>Register Case</span></button>
-        </form>
+                <div class="form-group">
+                    <label>Case Description</label>
+                    <textarea id="caseDescription" rows="4" placeholder="Provide a brief description of the case..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary"><span>Register Case</span></button>
+            </form>
     `;
 
     document.getElementById('modalOverlay').classList.add('active');
@@ -1147,28 +1253,28 @@ function openTimeEntry() {
     const modalBody = document.getElementById('modalBody');
     const today = new Date().toISOString().split('T')[0];
     modalBody.innerHTML = `
-        <h3>⏱️ Log Billable Hours</h3>
-        <form id="timeEntryForm" class="modal-form">
-            <div class="form-group">
-                <label>Case Number</label>
-                <input type="text" id="timeCaseNumber" placeholder="CL-2025-XXX" required>
-            </div>
-            <div class="form-row">
+        < h3 >⏱️ Log Billable Hours</h3 >
+            <form id="timeEntryForm" class="modal-form">
                 <div class="form-group">
-                    <label>Hours Worked</label>
-                    <input type="number" id="hours" step="0.25" min="0.25" max="24" placeholder="2.5" required>
+                    <label>Case Number</label>
+                    <input type="text" id="timeCaseNumber" placeholder="CL-2025-XXX" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Hours Worked</label>
+                        <input type="number" id="hours" step="0.25" min="0.25" max="24" placeholder="2.5" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="timeDate" value="${today}" required>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="timeDate" value="${today}" required>
+                    <label>Work Description</label>
+                    <textarea id="timeDescription" rows="4" placeholder="Describe the work performed..." required></textarea>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Work Description</label>
-                <textarea id="timeDescription" rows="4" placeholder="Describe the work performed..." required></textarea>
-            </div>
-            <button type="submit" class="btn-primary"><span>Log Time Entry</span></button>
-        </form>
+                <button type="submit" class="btn-primary"><span>Log Time Entry</span></button>
+            </form>
     `;
 
     document.getElementById('modalOverlay').classList.add('active');
@@ -1190,35 +1296,35 @@ function openLeaveRequest() {
     const minDate = tomorrow.toISOString().split('T')[0];
 
     modalBody.innerHTML = `
-        <h3>📅 Request Leave</h3>
-        <form id="leaveRequestForm" class="modal-form">
-            <div class="form-group">
-                <label>Leave Type</label>
-                <select id="leaveType" required>
-                    <option value="">Select leave type</option>
-                    <option value="annual">Annual Leave</option>
-                    <option value="sick">Sick Leave</option>
-                    <option value="personal">Personal Leave</option>
-                    <option value="emergency">Emergency Leave</option>
-                    <option value="unpaid">Unpaid Leave</option>
-                </select>
-            </div>
-            <div class="form-row">
+        < h3 >📅 Request Leave</h3 >
+            <form id="leaveRequestForm" class="modal-form">
                 <div class="form-group">
-                    <label>Start Date</label>
-                    <input type="date" id="leaveStartDate" min="${minDate}" required>
+                    <label>Leave Type</label>
+                    <select id="leaveType" required>
+                        <option value="">Select leave type</option>
+                        <option value="annual">Annual Leave</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="personal">Personal Leave</option>
+                        <option value="emergency">Emergency Leave</option>
+                        <option value="unpaid">Unpaid Leave</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="leaveStartDate" min="${minDate}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" id="leaveEndDate" min="${minDate}" required>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>End Date</label>
-                    <input type="date" id="leaveEndDate" min="${minDate}" required>
+                    <label>Reason for Leave</label>
+                    <textarea id="leaveReason" rows="4" placeholder="Please provide a reason for your leave request..." required></textarea>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Reason for Leave</label>
-                <textarea id="leaveReason" rows="4" placeholder="Please provide a reason for your leave request..." required></textarea>
-            </div>
-            <button type="submit" class="btn-primary"><span>Submit Leave Request</span></button>
-        </form>
+                <button type="submit" class="btn-primary"><span>Submit Leave Request</span></button>
+            </form>
     `;
 
     document.getElementById('modalOverlay').classList.add('active');
@@ -1238,39 +1344,39 @@ function openAddAgenda() {
     const today = new Date().toISOString().split('T')[0];
 
     modalBody.innerHTML = `
-        <h3>📋 Add to Agenda</h3>
-        <form id="addAgendaForm" class="modal-form">
-            <div class="form-group">
-                <label>Item Type</label>
-                <select id="agendaType" required>
-                    <option value="">Select item type</option>
-                    <option value="court_date">⚖️ Court Date</option>
-                    <option value="meeting">🤝 Client Meeting</option>
-                    <option value="deadline">⏰ Deadline</option>
-                    <option value="task">✅ Task</option>
-                    <option value="hearing">🎯 Hearing</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Title</label>
-                <input type="text" id="agendaTitle" placeholder="e.g., Client Consultation" required>
-            </div>
-            <div class="form-row">
+        < h3 >📋 Add to Agenda</h3 >
+            <form id="addAgendaForm" class="modal-form">
                 <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" id="agendaDate" min="${today}" required>
+                    <label>Item Type</label>
+                    <select id="agendaType" required>
+                        <option value="">Select item type</option>
+                        <option value="court_date">⚖️ Court Date</option>
+                        <option value="meeting">🤝 Client Meeting</option>
+                        <option value="deadline">⏰ Deadline</option>
+                        <option value="task">✅ Task</option>
+                        <option value="hearing">🎯 Hearing</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" id="agendaTime" required>
+                    <label>Title</label>
+                    <input type="text" id="agendaTitle" placeholder="e.g., Client Consultation" required>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Additional Notes</label>
-                <textarea id="agendaNotes" rows="3" placeholder="Add any relevant notes or details..."></textarea>
-            </div>
-            <button type="submit" class="btn-primary"><span>Add to Agenda</span></button>
-        </form>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="agendaDate" min="${today}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time</label>
+                        <input type="time" id="agendaTime" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Additional Notes</label>
+                    <textarea id="agendaNotes" rows="3" placeholder="Add any relevant notes or details..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary"><span>Add to Agenda</span></button>
+            </form>
     `;
 
     document.getElementById('modalOverlay').classList.add('active');
