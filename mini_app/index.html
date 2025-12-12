@@ -93,7 +93,8 @@
 
                 <!-- Quick Stats -->
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="document.querySelector('[data-tab=\'cases\']').click()"
+                        style="cursor: pointer;">
                         <div class="stat-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -103,10 +104,12 @@
                         </div>
                         <div class="stat-info">
                             <span class="stat-label">Active Cases</span>
-                            <span class="stat-value" id="activeCases">12</span>
+                            <span class="stat-value" id="activeCases">...</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card"
+                        onclick="document.getElementById('agendaList').scrollIntoView({behavior: 'smooth'})"
+                        style="cursor: pointer;">
                         <div class="stat-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -118,10 +121,10 @@
                         </div>
                         <div class="stat-info">
                             <span class="stat-label">Court Dates</span>
-                            <span class="stat-value" id="courtDates">3</span>
+                            <span class="stat-value" id="courtDates">...</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card" onclick="openTimeEntry()" style="cursor: pointer;">
                         <div class="stat-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -131,7 +134,7 @@
                         </div>
                         <div class="stat-info">
                             <span class="stat-label">Billable Hours (Month)</span>
-                            <span class="stat-value" id="billableHours">142.5</span>
+                            <span class="stat-value" id="billableHours">...</span>
                         </div>
                     </div>
                 </div>
