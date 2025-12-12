@@ -1,13 +1,39 @@
+
 // City Law Firm Virtual Office - JavaScript Application
 
 // Initialize Telegram Web App
-const tg = window.Telegram.WebApp;
-tg.expand();
-tg.ready();
+let tg;
+try {
+    tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+} catch (e) {
+    console.warn('Telegram WebApp not available, using mock');
+    // Mock tg for browser testing
+    tg = {
+        initDataUnsafe: { user: { id: 12345, first_name: "Test", last_name: "User" } },
+        expand: () => { },
+        ready: () => { },
+        HapticFeedback: { impactOccurred: () => { } },
+        showAlert: (msg) => alert(msg),
+        showConfirm: (msg) => confirm(msg),
+        close: () => console.log('App closed'),
+        themeParams: {}
+    };
+}
+
+// DEBUG: Global Error Handler to catch mobile errors
+window.onerror = function (msg, url, lineNo, columnNo, error) {
+    const errorMsg = `Error: ${msg} \nLine: ${lineNo} \nURL: ${url} `;
+    // alert(errorMsg); // Uncomment to see system alerts
+    if (tg.showAlert) tg.showAlert(errorMsg);
+    else alert(errorMsg);
+    return false;
+};
 
 // API Configuration
 const API_BASE_URL = 'https://tomoko-pericarditic-regretfully.ngrok-free.dev/api';
-const USER_ID = tg.initDataUnsafe?.user?.id || null;
+const USER_ID = tg.initDataUnsafe?.user?.id || 12345;
 
 // Data storage
 let userData = null;
@@ -21,7 +47,7 @@ let staffData = [];
 async function fetchUserProfile() {
     if (!USER_ID) return;
     try {
-        const response = await fetch(`${API_BASE_URL}/user/${USER_ID}`, {
+        const response = await fetch(`${API_BASE_URL} /user/${USER_ID} `, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) {
@@ -32,7 +58,7 @@ async function fetchUserProfile() {
                 department: data.departments,
                 email: data.email,
                 phone: data.phone,
-                employeeId: `CLF-${data.id}`,
+                employeeId: `CLF - ${data.id} `,
                 specialization: data.role, // Mapping role to specialization for now
                 barNumber: "N/A", // Not in API yet
                 joinDate: "N/A" // Not in API yet
@@ -42,28 +68,28 @@ async function fetchUserProfile() {
     } catch (error) {
         console.error('Error fetching user profile:', error);
     }
-    console.error('Error fetching user profile:', error);
-}
-// Fallback Mock Data
-userData = {
-    name: "John Doe",
-    position: "Senior Attorney",
-    department: "Litigation",
-    email: "john.doe@citylaw.com",
-    phone: "+1 (555) 123-4567",
-    employeeId: "CLF-1001",
-    specialization: "Corporate Litigation",
-    barNumber: "NY-12345",
-    joinDate: "2020-03-15"
-};
-return userData;
+
+    // Fallback Mock Data
+    console.log("Using fallback profile data");
+    userData = {
+        name: "John Doe",
+        position: "Senior Attorney",
+        department: "Litigation",
+        email: "john.doe@citylaw.com",
+        phone: "+1 (555) 123-4567",
+        employeeId: "CLF-1001",
+        specialization: "Corporate Litigation",
+        barNumber: "NY-12345",
+        joinDate: "2020-03-15"
+    };
+    return userData;
 }
 
 // Fetch cases
 async function fetchCases() {
     if (!USER_ID) return [];
     try {
-        const response = await fetch(`${API_BASE_URL}/cases/${USER_ID}`, {
+        const response = await fetch(`${API_BASE_URL} /cases/${USER_ID} `, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) {
@@ -85,24 +111,24 @@ async function fetchCases() {
     } catch (error) {
         console.error('Error fetching cases:', error);
     }
-    console.error('Error fetching cases:', error);
-}
-// Fallback Mock Data
-casesData = [
-    { id: 1, caseNumber: 'CL-2025-001', title: 'Smith vs. Jones Corp', client: 'John Smith', type: 'Civil', status: 'active', priority: 'high', nextCourtDate: '2025-12-15T09:00:00', deadline: '2025-12-20T17:00:00' },
-    { id: 2, caseNumber: 'CL-2025-002', title: 'State vs. Doe', client: 'Jane Doe', type: 'Criminal', status: 'pending', priority: 'urgent', nextCourtDate: null, deadline: '2025-12-10T17:00:00' },
-    { id: 3, caseNumber: 'CL-2025-003', title: 'Real Estate Merger', client: 'Tech Properties', type: 'Corporate', status: 'active', priority: 'normal', nextCourtDate: null, deadline: '2026-01-15T17:00:00' },
-    { id: 4, caseNumber: 'CL-2025-004', title: 'Family Trust Setup', client: 'Robert Wilson', type: 'Family', status: 'closed', priority: 'low', nextCourtDate: null, deadline: null }
-];
-statsData.activeCases = casesData.filter(c => c.status === 'active').length;
-return casesData;
+
+    // Fallback Mock Data
+    console.log("Using fallback cases data");
+    casesData = [
+        { id: 1, caseNumber: 'CL-2025-001', title: 'Smith vs. Jones Corp', client: 'John Smith', type: 'Civil', status: 'active', priority: 'high', nextCourtDate: '2025-12-15T09:00:00', deadline: '2025-12-20T17:00:00' },
+        { id: 2, caseNumber: 'CL-2025-002', title: 'State vs. Doe', client: 'Jane Doe', type: 'Criminal', status: 'pending', priority: 'urgent', nextCourtDate: null, deadline: '2025-12-10T17:00:00' },
+        { id: 3, caseNumber: 'CL-2025-003', title: 'Real Estate Merger', client: 'Tech Properties', type: 'Corporate', status: 'active', priority: 'normal', nextCourtDate: null, deadline: '2026-01-15T17:00:00' },
+        { id: 4, caseNumber: 'CL-2025-004', title: 'Family Trust Setup', client: 'Robert Wilson', type: 'Family', status: 'closed', priority: 'low', nextCourtDate: null, deadline: null }
+    ];
+    statsData.activeCases = casesData.filter(c => c.status === 'active').length;
+    return casesData;
 }
 
 // Fetch agenda
 async function fetchAgenda() {
     if (!USER_ID) return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
     try {
-        const response = await fetch(`${API_BASE_URL}/agenda/${USER_ID}`, {
+        const response = await fetch(`${API_BASE_URL} /agenda/${USER_ID} `, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) {
@@ -120,7 +146,7 @@ async function fetchAgenda() {
                     agendaData.push({
                         time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         title: "Court Appearance",
-                        description: `${cd.court_name} - ${cd.purpose || 'Hearing'}`,
+                        description: `${cd.court_name} - ${cd.purpose || 'Hearing'} `,
                         type: "court"
                     });
                 });
@@ -143,49 +169,49 @@ async function fetchAgenda() {
     } catch (error) {
         console.error('Error fetching agenda:', error);
     }
-    console.error('Error fetching agenda:', error);
-}
-// Fallback Mock Data
-const mockAgenda = {
-    court_dates: [
-        { hearing_date: '2025-12-12T10:00:00', court_name: 'District Court', purpose: 'Preliminary Hearing' },
-        { hearing_date: '2025-12-15T14:30:00', court_name: 'Superior Court', purpose: 'Case Management Conference' }
-    ],
-    tasks: [
-        { title: 'Draft Motion to Dismiss (Smith vs. Jones)' },
-        { title: 'Client Meeting: Tech Properties' }
-    ],
-    total_hours: 142.5
-};
 
-statsData.courtDates = mockAgenda.court_dates.length;
-statsData.billableHours = mockAgenda.total_hours;
+    // Fallback Mock Data
+    console.log("Using fallback agenda data");
+    const mockAgenda = {
+        court_dates: [
+            { hearing_date: '2025-12-12T10:00:00', court_name: 'District Court', purpose: 'Preliminary Hearing' },
+            { hearing_date: '2025-12-15T14:30:00', court_name: 'Superior Court', purpose: 'Case Management Conference' }
+        ],
+        tasks: [
+            { title: 'Draft Motion to Dismiss (Smith vs. Jones)' },
+            { title: 'Client Meeting: Tech Properties' }
+        ],
+        total_hours: 142.5
+    };
 
-// Map to agenda items for display
-agendaData = [];
-if (mockAgenda.court_dates) {
-    mockAgenda.court_dates.forEach(cd => {
-        const date = new Date(cd.hearing_date);
-        agendaData.push({
-            time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            title: "Court Appearance",
-            description: `${cd.court_name} - ${cd.purpose || 'Hearing'}`,
-            type: "court"
+    statsData.courtDates = mockAgenda.court_dates.length;
+    statsData.billableHours = mockAgenda.total_hours;
+
+    // Map to agenda items for display
+    agendaData = [];
+    if (mockAgenda.court_dates) {
+        mockAgenda.court_dates.forEach(cd => {
+            const date = new Date(cd.hearing_date);
+            agendaData.push({
+                time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                title: "Court Appearance",
+                description: `${cd.court_name} - ${cd.purpose || 'Hearing'} `,
+                type: "court"
+            });
         });
-    });
-}
-if (mockAgenda.tasks) {
-    mockAgenda.tasks.forEach(t => {
-        agendaData.push({
-            time: "Anytime",
-            title: "Task",
-            description: t.title,
-            type: "deadline"
+    }
+    if (mockAgenda.tasks) {
+        mockAgenda.tasks.forEach(t => {
+            agendaData.push({
+                time: "Anytime",
+                title: "Task",
+                description: t.title,
+                type: "deadline"
+            });
         });
-    });
-}
+    }
 
-return mockAgenda;
+    return mockAgenda;
 }
 
 // Fetch notifications
@@ -235,16 +261,16 @@ async function fetchStaff() {
     } catch (error) {
         console.error('Error fetching staff:', error);
     }
-    console.error('Error fetching staff:', error);
-}
-// Fallback Mock Data
-staffData = [
-    { id: 1, name: 'Sarah Parker', role: 'Senior Partner', photo: 'https://ui-avatars.com/api/?name=Sarah+Parker&background=3b82f6&color=fff', status: 'online', location: 'Office 301', lastSeen: 'Just now' },
-    { id: 2, name: 'James Wilson', role: 'Associate', photo: 'https://ui-avatars.com/api/?name=James+Wilson&background=10b981&color=fff', status: 'offline', location: 'Unknown', lastSeen: '15 mins ago' },
-    { id: 3, name: 'Emily Chen', role: 'Paralegal', photo: 'https://ui-avatars.com/api/?name=Emily+Chen&background=f59e0b&color=fff', status: 'online', location: 'Court House', lastSeen: '5 mins ago' },
-    { id: 4, name: 'Michael Ross', role: 'Junior Associate', photo: 'https://ui-avatars.com/api/?name=Michael+Ross&background=ef4444&color=fff', status: 'offline', location: 'Meeting Room 2', lastSeen: '1 hour ago' }
-];
-return staffData;
+
+    // Fallback Mock Data
+    console.log("Using fallback staff data");
+    staffData = [
+        { id: 1, name: 'Sarah Parker', role: 'Senior Partner', photo: 'https://ui-avatars.com/api/?name=Sarah+Parker&background=3b82f6&color=fff', status: 'online', location: 'Office 301', lastSeen: 'Just now' },
+        { id: 2, name: 'James Wilson', role: 'Associate', photo: 'https://ui-avatars.com/api/?name=James+Wilson&background=10b981&color=fff', status: 'offline', location: 'Unknown', lastSeen: '15 mins ago' },
+        { id: 3, name: 'Emily Chen', role: 'Paralegal', photo: 'https://ui-avatars.com/api/?name=Emily+Chen&background=f59e0b&color=fff', status: 'online', location: 'Court House', lastSeen: '5 mins ago' },
+        { id: 4, name: 'Michael Ross', role: 'Junior Associate', photo: 'https://ui-avatars.com/api/?name=Michael+Ross&background=ef4444&color=fff', status: 'offline', location: 'Meeting Room 2', lastSeen: '1 hour ago' }
+    ];
+    return staffData;
 }
 
 // Mock data removed - using API data
@@ -301,23 +327,15 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         document.body.style.transition = 'opacity 0.5s ease-in-out';
         document.body.style.opacity = '1';
+        // Setup UI immediately
+        setupEventListeners();
+        renderInitialUI();
+        // Then fetch data
         initializeApp();
     }, 100);
 });
 
-// Initialize app
-async function initializeApp() {
-    // Show loading state
-    document.body.style.opacity = '0.7';
-
-    // Fetch all data
-    await Promise.all([
-        fetchUserProfile(),
-        fetchCases(),
-        fetchAgenda()
-    ]);
-
-    // Render UI with real data
+function renderInitialUI() {
     renderProfile();
     renderStats();
     renderAgenda();
@@ -325,9 +343,37 @@ async function initializeApp() {
     renderDepartments();
     renderStaff();
     renderNotifications();
+}
 
-    // Setup event listeners
-    setupEventListeners();
+// Initialize app
+async function initializeApp() {
+    // Show loading state
+    document.body.style.opacity = '0.7';
+
+    // Fetches happen in background now
+    try {
+        await Promise.all([
+            fetchUserProfile(),
+            fetchCases(),
+            fetchAgenda()
+        ]);
+
+        // Re-render with real data if fetch succeeds
+        renderInitialUI();
+    } catch (e) {
+        console.log("Using mock data due to error", e);
+    }
+
+    // Check URL parameters for specific views (moved from bottom)
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get('view');
+
+    if (view === 'newcase') {
+        const casesTab = document.querySelector('[data-tab="cases"]');
+        if (casesTab) casesTab.click(); // Trigger click to switch
+
+        setTimeout(() => openNewCase(), 500);
+    }
 
     // Apply theme
     applyTelegramTheme();
@@ -337,27 +383,8 @@ async function initializeApp() {
 
     // Hide loading state
     document.body.style.opacity = '1';
-
-    // Check URL parameters for specific views
-    const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view');
-
-    if (view === 'newcase') {
-        // Switch to Cases tab and show new case form
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-        const casesTab = document.querySelector('[data-tab="cases"]');
-        if (casesTab) {
-            casesTab.classList.add('active');
-            document.getElementById('cases').classList.add('active');
-        }
-
-        // Scroll to top and trigger haptic feedback
-        window.scrollTo(0, 0);
-        tg.HapticFeedback.impactOccurred('medium');
-    }
 }
+
 
 function renderNotifications() {
     const list = document.getElementById('notificationsList');
@@ -618,8 +645,7 @@ function renderCases() {
                 </div>
             </div>
         `;
-            </div >
-        `;
+
     }).join('');
 
     casesList.innerHTML = casesHTML;
