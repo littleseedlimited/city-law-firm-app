@@ -2088,7 +2088,6 @@ def main():
             ONBOARD_LOCATION: [MessageHandler(filters.LOCATION, onboard_location)],
             ONBOARD_CONFIRM: [CallbackQueryHandler(confirm_onboarding, pattern='^confirm_onboarding$')],
         },
-        },
         fallbacks=[CommandHandler('start', start)],
         name="onboarding",
         persistent=True,
