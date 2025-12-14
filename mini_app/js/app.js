@@ -47,7 +47,7 @@ let staffData = [];
 async function fetchUserProfile() {
     if (!USER_ID) return;
     try {
-        const response = await fetch(`${API_BASE_URL} /user/${USER_ID} `, {
+        const response = await fetch(`${API_BASE_URL}/user/${USER_ID}`, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) {
@@ -89,7 +89,7 @@ async function fetchUserProfile() {
 async function fetchCases() {
     if (!USER_ID) return [];
     try {
-        const response = await fetch(`${API_BASE_URL} /cases/${USER_ID} `, {
+        const response = await fetch(`${API_BASE_URL}/cases/${USER_ID}`, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) {
@@ -128,7 +128,7 @@ async function fetchCases() {
 async function fetchAgenda() {
     if (!USER_ID) return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
     try {
-        const response = await fetch(`${API_BASE_URL} /agenda/${USER_ID} `, {
+        const response = await fetch(`${API_BASE_URL}/agenda/${USER_ID}`, {
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) {
@@ -487,27 +487,7 @@ function setupEventListeners() {
     }
 }
 
-function showModal(title, content) {
-    const modalBody = document.getElementById('modalBody');
-    const modalOverlay = document.getElementById('modalOverlay');
 
-    if (modalBody && modalOverlay) {
-        // Add header to content if not present in content string
-        let finalContent = content;
-        if (!content.includes('<h3>')) {
-            finalContent = `<h3>${title}</h3>` + content;
-        }
-        modalBody.innerHTML = finalContent;
-        modalOverlay.classList.add('active');
-    }
-}
-
-function closeModal() {
-    const modalOverlay = document.getElementById('modalOverlay');
-    if (modalOverlay) {
-        modalOverlay.classList.remove('active');
-    }
-}
 
 function setupTabNavigation() {
     const tabButtons = document.querySelectorAll('.tab-btn');
