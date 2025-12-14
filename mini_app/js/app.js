@@ -550,7 +550,30 @@ function renderAgenda() {
     `).join('');
 }
 
-// Duplicate renderNotifications removed
+// Render Notifications
+function renderNotifications() {
+    const list = document.getElementById('notificationsList');
+    if (!list) return;
+
+    if (notificationsData.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: var(--text-tertiary); padding: 2rem;">No new notifications</div>';
+        return;
+    }
+
+    list.innerHTML = notificationsData.map(n => `
+        <div class="notification-card ${n.type || 'info'}" id="notification-${n.id}">
+            <div class="notification-header">
+                <span class="notification-badge">${n.type || 'Info'}</span>
+                <span class="notification-time">${formatDate(n.created_at)}</span>
+            </div>
+            <h4 class="notification-title">${n.title}</h4>
+            <p class="notification-message">${n.message}</p>
+            <button class="btn-small" onclick="deleteNotification(${n.id})" style="margin-top: 0.5rem; color: var(--text-tertiary); border-color: var(--border-color); width: 100%;">
+                Dismiss
+            </button>
+        </div>
+    `).join('');
+}
 
 
 function renderStaff() {
@@ -786,49 +809,41 @@ function submitNewCase(event) {
 function openNewCase() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Register New Case', `
-        <form onsubmit="submitNewCase(event)" style="display: flex; flex-direction: column; gap: 1rem;">
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
-                <input required type="text" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+        <form onsubmit="submitNewCase(event)" class="modal-form">
+            <div class="form-group">
+                <label>Case Number</label>
+                <input required type="text" placeholder="CL-2025-XXX" class="form-input">
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Client Name</label>
-                <input required type="text" placeholder="Full name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+            <div class="form-group">
+                <label>Client Name</label>
+                <input required type="text" placeholder="Full name" class="form-input">
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Type</label>
-                <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    <option>Litigation</option>
-                    <option>Corporate</option>
-                    <option>Family</option>
-                    <option>Criminal</option>
-                </select>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Detail</label>
+                    <select class="form-select">
+                        <option>Litigation</option>
+                        <option>Corporate</option>
+                        <option>Family</option>
+                        <option>Criminal</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select class="form-select">
+                        <option>Normal</option>
+                        <option>High</option>
+                        <option>Urgent</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Department</label>
-                <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    <option>Litigation Department</option>
-                    <option>Corporate Law</option>
-                    <option>Family Law</option>
-                    <option>Criminal Defense</option>
-                </select>
+            <div class="form-group">
+                <label>Responsible Attorney</label>
+                <input required type="text" placeholder="Attorney Name" class="form-input">
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-                <select style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    <option>Normal</option>
-                    <option>High</option>
-                    <option>Urgent</option>
-                    <option>Low</option>
-                </select>
-            </div>
-            <div>
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Responsible Person</label>
-                <input required type="text" placeholder="Attorney Name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-            </div>
-            <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Create Case</button>
+            <button type="submit" class="btn-primary">Create Case</button>
         </form>
-        `);
+    `);
 }
 
 function openTimeEntry() {
@@ -1030,53 +1045,53 @@ function submitAgendaItem(event) {
 function openAddAgenda() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Add to Agenda', `
-        < div style = "display: flex; gap: 0.5rem; margin-bottom: 1rem;" >
-            <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
-            <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
-        </div >
+        <div class="agenda-toggle">
+            <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')">Court Date</button>
+            <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')">Task</button>
+        </div>
 
-        <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
+        <form onsubmit="submitAgendaItem(event)" id="agendaForm" class="modal-form">
             <input type="hidden" name="type" id="agendaType" value="court">
 
-                <div id="courtFields">
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
-                        <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
-                        <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
-                        <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
-                        <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
+            <div id="courtFields">
+                <div class="form-group">
+                    <label>Case Number</label>
+                    <input required type="text" name="case_number" placeholder="CL-2025-XXX" class="form-input">
                 </div>
-
-                <div id="taskFields" style="display: none;">
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
-                        <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
-                        <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-                        <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>Court Name</label>
+                    <input required type="text" name="court_name" placeholder="Supreme Court" class="form-input">
                 </div>
+                <div class="form-group">
+                    <label>Date & Time</label>
+                    <input required type="datetime-local" name="date_time" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Purpose</label>
+                    <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." class="form-input">
+                </div>
+            </div>
 
-                <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
+            <div id="taskFields" style="display: none;">
+                <div class="form-group">
+                    <label>Task Title</label>
+                    <input type="text" name="title" placeholder="Review documents" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Deadline</label>
+                    <input type="date" name="deadline" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Add to Agenda</button>
         </form>
     `);
 }
@@ -1168,7 +1183,7 @@ function viewCaseDetails(caseId) {
     if (!caseItem) return;
 
     showModal(caseItem.caseNumber, `
-        < div style = "display: flex; flex-direction: column; gap: 1rem;" >
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
             <h3 style="font-size: 1.125rem; margin-bottom: 0.5rem;">${caseItem.title}</h3>
             <div style="display: flex; gap: 0.5rem;">
                 ${getStatusBadge(caseItem.status)}
@@ -1184,7 +1199,7 @@ function viewCaseDetails(caseId) {
                 <button class="btn-primary" onclick="closeModal(); openTimeEntry();">Log Time</button>
                 <button class="btn-small">View Documents</button>
             </div>
-        </div >
+        </div>
         `);
 }
 
@@ -1196,7 +1211,7 @@ function viewDepartment(deptName) {
     if (!dept) return;
 
     showModal(dept.name, `
-        < div style = "display: flex; flex-direction: column; gap: 1rem;" >
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
             <div style="font-size: 3rem; text-align: center;">${dept.icon}</div>
             <div style="text-align: center; color: var(--text-secondary);">
                 ${dept.members}/${dept.maxMembers} members
@@ -1213,13 +1228,75 @@ function viewDepartment(deptName) {
                 </div>
             </div>
             <button class="btn-primary" style="margin-top: 0.5rem;">View Team Directory</button>
-        </div >
+        </div>
         `);
 }
 
-function editProfile() {
+async function editProfile() {
     tg.HapticFeedback.impactOccurred('medium');
-    tg.showAlert('Profile editing will be available in the next update!');
+    if (!userData) {
+        tg.showAlert('Profile data not waiting. Please wait...');
+        await fetchUserProfile();
+    }
+
+    showModal('Edit Profile', `
+        <form onsubmit="submitProfileEdit(event)" class="modal-form">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input required type="text" name="full_name" value="${userData?.name || ''}" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input required type="email" name="email" value="${userData?.email || ''}" class="form-input">
+            </div>
+             <div class="form-group">
+                <label>Phone</label>
+                <input required type="tel" name="phone" value="${userData?.phone || ''}" class="form-input">
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea name="address" rows="2" class="form-input">${userData?.address || ''}</textarea>
+            </div>
+            <button type="submit" class="btn-primary">Save Changes</button>
+        </form>
+    `);
+}
+
+function submitProfileEdit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const data = {
+        action: 'edit_profile',
+        full_name: form.querySelector('input[name="full_name"]').value,
+        email: form.querySelector('input[name="email"]').value,
+        phone: form.querySelector('input[name="phone"]').value,
+        address: form.querySelector('textarea[name="address"]').value
+    };
+    tg.sendData(JSON.stringify(data));
+    tg.close();
+}
+
+async function deleteNotification(id) {
+    tg.HapticFeedback.impactOccurred('medium');
+    if (!confirm('Delete this notification?')) return;
+
+    try {
+        const response = await fetch(\`\${API_BASE_URL}/notifications/\${id}\`, {
+            method: 'DELETE',
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        });
+        
+        if (response.ok) {
+            document.getElementById(\`notification-\${id}\`).remove();
+            tg.showAlert('Notification deleted');
+        } else {
+            console.error('Failed to delete notification');
+        }
+    } catch (e) {
+        console.error('Error deleting notification:', e);
+        // Fallback for demo
+        document.getElementById(\`notification-\${id}\`).remove();
+    }
 }
 
 // Modal functions
@@ -1260,192 +1337,4 @@ tg.BackButton.onClick(() => {
 });
 
 // Action button handlers
-function openNewCase() {
-    const modalBody = document.getElementById('modalBody');
-    modalBody.innerHTML = `
-        < h3 >📝 Register New Case</h3 >
-            <form id="newCaseForm" class="modal-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Case Number</label>
-                        <input type="text" id="caseNumber" placeholder="CL-2025-XXX" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Case Type</label>
-                        <select id="caseType" required>
-                            <option value="">Select type</option>
-                            <option value="civil">Civil Law</option>
-                            <option value="criminal">Criminal Law</option>
-                            <option value="corporate">Corporate Law</option>
-                            <option value="family">Family Law</option>
-                            <option value="property">Property Law</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Client Name</label>
-                    <input type="text" id="clientName" placeholder="Enter full client name" required>
-                </div>
-                <div class="form-group">
-                    <label>Case Description</label>
-                    <textarea id="caseDescription" rows="4" placeholder="Provide a brief description of the case..."></textarea>
-                </div>
-                <button type="submit" class="btn-primary"><span>Register Case</span></button>
-            </form>
-    `;
-
-    document.getElementById('modalOverlay').classList.add('active');
-
-    document.getElementById('newCaseForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.showAlert('Case registered successfully!');
-        closeModal();
-    });
-
-    tg.HapticFeedback.impactOccurred('medium');
-}
-
-function openTimeEntry() {
-    const modalBody = document.getElementById('modalBody');
-    const today = new Date().toISOString().split('T')[0];
-    modalBody.innerHTML = `
-        < h3 >⏱️ Log Billable Hours</h3 >
-            <form id="timeEntryForm" class="modal-form">
-                <div class="form-group">
-                    <label>Case Number</label>
-                    <input type="text" id="timeCaseNumber" placeholder="CL-2025-XXX" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Hours Worked</label>
-                        <input type="number" id="hours" step="0.25" min="0.25" max="24" placeholder="2.5" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="timeDate" value="${today}" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Work Description</label>
-                    <textarea id="timeDescription" rows="4" placeholder="Describe the work performed..." required></textarea>
-                </div>
-                <button type="submit" class="btn-primary"><span>Log Time Entry</span></button>
-            </form>
-    `;
-
-    document.getElementById('modalOverlay').classList.add('active');
-
-    document.getElementById('timeEntryForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.showAlert('Time logged successfully!');
-        closeModal();
-    });
-
-    tg.HapticFeedback.impactOccurred('medium');
-}
-
-function openLeaveRequest() {
-    const modalBody = document.getElementById('modalBody');
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const minDate = tomorrow.toISOString().split('T')[0];
-
-    modalBody.innerHTML = `
-        < h3 >📅 Request Leave</h3 >
-            <form id="leaveRequestForm" class="modal-form">
-                <div class="form-group">
-                    <label>Leave Type</label>
-                    <select id="leaveType" required>
-                        <option value="">Select leave type</option>
-                        <option value="annual">Annual Leave</option>
-                        <option value="sick">Sick Leave</option>
-                        <option value="personal">Personal Leave</option>
-                        <option value="emergency">Emergency Leave</option>
-                        <option value="unpaid">Unpaid Leave</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Start Date</label>
-                        <input type="date" id="leaveStartDate" min="${minDate}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>End Date</label>
-                        <input type="date" id="leaveEndDate" min="${minDate}" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Reason for Leave</label>
-                    <textarea id="leaveReason" rows="4" placeholder="Please provide a reason for your leave request..." required></textarea>
-                </div>
-                <button type="submit" class="btn-primary"><span>Submit Leave Request</span></button>
-            </form>
-    `;
-
-    document.getElementById('modalOverlay').classList.add('active');
-
-    document.getElementById('leaveRequestForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.showAlert('Leave request submitted!');
-        closeModal();
-    });
-
-    tg.HapticFeedback.impactOccurred('medium');
-}
-
-function openAddAgenda() {
-    const modalBody = document.getElementById('modalBody');
-    const today = new Date().toISOString().split('T')[0];
-
-    modalBody.innerHTML = `
-        < h3 >📋 Add to Agenda</h3 >
-            <form id="addAgendaForm" class="modal-form">
-                <div class="form-group">
-                    <label>Item Type</label>
-                    <select id="agendaType" required>
-                        <option value="">Select item type</option>
-                        <option value="court_date">⚖️ Court Date</option>
-                        <option value="meeting">🤝 Client Meeting</option>
-                        <option value="deadline">⏰ Deadline</option>
-                        <option value="task">✅ Task</option>
-                        <option value="hearing">🎯 Hearing</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Title</label>
-                    <input type="text" id="agendaTitle" placeholder="e.g., Client Consultation" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="agendaDate" min="${today}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Time</label>
-                        <input type="time" id="agendaTime" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Additional Notes</label>
-                    <textarea id="agendaNotes" rows="3" placeholder="Add any relevant notes or details..."></textarea>
-                </div>
-                <button type="submit" class="btn-primary"><span>Add to Agenda</span></button>
-            </form>
-    `;
-
-    document.getElementById('modalOverlay').classList.add('active');
-
-    document.getElementById('addAgendaForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.showAlert('Added to agenda!');
-        closeModal();
-    });
-
-    tg.HapticFeedback.impactOccurred('medium');
-}
-
 console.log('City Law Firm Virtual Office initialized successfully!');
