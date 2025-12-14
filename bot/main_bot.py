@@ -5,6 +5,10 @@ Handles all bot operations, commands, and automation
 import os
 import logging
 from datetime import datetime, timedelta
+import sys
+import os
+# Fix import path to allow importing from database directory
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, CallbackQueryHandler,
@@ -13,6 +17,10 @@ from telegram.ext import (
 from dotenv import load_dotenv
 import asyncio
 import pytz
+from dotenv import load_dotenv
+
+# Load environment variables (MUST BE FIRST)
+load_dotenv('config/.env')
 
 from database.models import (
     init_db, get_session, User, Case, CourtDate, 
@@ -21,8 +29,7 @@ from database.models import (
 from bot.scheduler import start_scheduler
 
 
-# Load environment variables
-load_dotenv('config/.env')
+
 
 # Configure logging
 logging.basicConfig(
@@ -1190,6 +1197,10 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Send analysis result with follow-up options
         keyboard = [
+            [
+                InlineKeyboardButton("📤 Share", switch_inline_query=ai_summary[:50]),
+                InlineKeyboardButton("💾 Save to Case", callback_data='doc_save')
+            ],
             [InlineKeyboardButton("✅ Done", callback_data='doc_done')],
             [InlineKeyboardButton("💬 Ask Follow-up Question", callback_data='doc_continue')]
         ]
@@ -1247,8 +1258,35 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
             f"❓ Reason: {data['reason']}",
             parse_mode='Markdown'
         )
-        # In a real scenario, we would query users with role='HR' or 'Partner' and send them a message here.
         # e.g., await context.bot.send_message(chat_id=hr_user_id, text=f"New Leave Request from...")
+
+    elif action == 'edit_profile':
+        session = get_session(engine)
+        try:
+            user = update.effective_user
+            db_user = session.query(User).filter_by(telegram_id=user.id).first()
+            if db_user:
+                db_user.full_name = data.get('full_name', db_user.full_name)
+                db_user.email = data.get('email', db_user.email)
+                db_user.phone = data.get('phone', db_user.phone)
+                db_user.address = data.get('address', db_user.address)
+                session.commit()
+                
+                await update.message.reply_text(
+                    f"✅ **Profile Updated Successfully**\n\n"
+                    f"👤 Name: {db_user.full_name}\n"
+                    f"📧 Email: {db_user.email}\n"
+                    f"📱 Phone: {db_user.phone}\n"
+                    f"📍 Address: {db_user.address}",
+                    parse_mode='Markdown'
+                )
+            else:
+                await update.message.reply_text("❌ Error: User profile not found.")
+        except Exception as e:
+            logger.error(f"Error updating profile: {e}")
+            await update.message.reply_text("❌ Error updating profile.")
+        finally:
+            session.close()
 
 
 async def myagenda_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1285,6 +1323,17 @@ async def doc_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_reply_markup(reply_markup=None)
         await query.message.reply_text("✅ Document analysis finished. Context cleared.")
         
+    elif query.data == 'doc_save':
+        # "Save to Case" - For now, just confirm it's in the DB (which happened on upload)
+        # In a generic "Save to Case" flow, we might ask which case, but for MVP:
+        await query.answer("Document saved to General Files")
+        await query.message.reply_text(
+            "✅ **Document Saved**\n"
+            "This document has been archived in your general case files.\n"
+            "To link it to a specific case, please use the Mini App.",
+            parse_mode='Markdown'
+        )
+
     elif query.data == 'doc_continue':
         # Set flag to await follow-up question
         context.user_data['awaiting_followup'] = True
