@@ -1317,4 +1317,44 @@ tg.BackButton.onClick(() => {
 });
 
 // Action button handlers
+// Action button handlers
 console.log('City Law Firm Virtual Office initialized successfully!');
+
+// INITIALIZATION LOGIC
+// This was missing!
+(async function initApp() {
+    try {
+        console.log('Starting App Initialization...');
+        
+        // 1. Setup Listeners
+        setupTabNavigation();
+        setupEventListeners();
+        setupScrollAnimations();
+        
+        // 2. Fetch Data
+        console.log('Fetching User Profile...');
+        await fetchUserProfile();
+        renderProfile();
+        
+        console.log('Fetching Dashboard Data...');
+        await Promise.all([
+            fetchCases(),
+            fetchAgenda(),
+            fetchNotifications(),
+            fetchStaff()
+        ]);
+
+        // 3. Render Initial State
+        renderStats();
+        renderAgenda();
+        renderNotifications();
+        renderCases();
+        renderDepartments();
+        renderStaff();
+        
+        console.log('App Initialization Complete');
+    } catch (e) {
+        console.error('Initialization Failed:', e);
+        if (tg && tg.showAlert) tg.showAlert('Failed to load app data. Please try again.');
+    }
+})();
