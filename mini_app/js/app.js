@@ -23,13 +23,13 @@ try {
 }
 
 // DEBUG: Global Error Handler to catch mobile errors
-window.onerror = function (msg, url, lineNo, columnNo, error) {
-    const errorMsg = `Error: ${msg} \nLine: ${lineNo} \nURL: ${url} `;
-    // alert(errorMsg); // Uncomment to see system alerts
-    if (tg.showAlert) tg.showAlert(errorMsg);
-    else alert(errorMsg);
-    return false;
-};
+// DEBUG: Global Error Handler (Handled in index.html now)
+// window.onerror = function (msg, url, lineNo, columnNo, error) {
+//     const errorMsg = `Error: ${msg} \nLine: ${lineNo} \nURL: ${url} `;
+//     if (tg.showAlert) tg.showAlert(errorMsg);
+//     else alert(errorMsg);
+//     return false;
+// };
 
 // API Configuration
 const API_BASE_URL = 'https://tomoko-pericarditic-regretfully.ngrok-free.dev/api';
