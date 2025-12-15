@@ -2195,6 +2195,12 @@ def main():
     application.add_handler(CallbackQueryHandler(add_court_date_callback, pattern='^add_court_date$'))
     application.add_handler(CallbackQueryHandler(add_task_callback, pattern='^add_task$'))
 
+    # Web App Data Handler
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
+    
+    # Document Analysis Callbacks
+    application.add_handler(CallbackQueryHandler(doc_callback_handler, pattern='^doc_'))
+
     # Onboarding Handler (Must be BEFORE generic MessageHandlers)
     application.add_handler(onboarding_handler)
     
