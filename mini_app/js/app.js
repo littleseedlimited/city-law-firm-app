@@ -32,16 +32,36 @@ try {
 // };
 
 // API Configuration
-const API_BASE_URL = 'https://tomoko-pericarditic-regretfully.ngrok-free.dev/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 const USER_ID = tg.initDataUnsafe?.user?.id || 12345;
 
 // Data storage
 let userData = null;
 let statsData = { activeCases: 0, courtDates: 0, billableHours: 0 };
 let agendaData = [];
-let casesData = [];
+let allCasesData = []; // Store original cases for filtering
+let casesData = [];    // Displayed cases
 let notificationsData = [];
 let staffData = [];
+
+// Loading states
+function showLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.style.opacity = '1';
+    }
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+        }, 500);
+    }
+}
 
 // Fetch user profile
 async function fetchUserProfile() {
@@ -94,7 +114,7 @@ async function fetchCases() {
         });
         if (response.ok) {
             const data = await response.json();
-            casesData = (data.cases || []).map(c => ({
+            allCasesData = (data.cases || []).map(c => ({
                 id: c.id,
                 caseNumber: c.case_number,
                 title: c.title,
@@ -105,8 +125,9 @@ async function fetchCases() {
                 nextCourtDate: c.next_court_date,
                 deadline: c.deadline
             }));
-            statsData.activeCases = casesData.filter(c => c.status === 'active').length;
-            return casesData;
+            casesData = [...allCasesData];
+            statsData.activeCases = allCasesData.filter(c => c.status === 'active').length;
+            return allCasesData;
         }
     } catch (error) {
         console.error('Error fetching cases:', error);
@@ -322,17 +343,12 @@ const departmentsData = [
 
 // Initialize app on load
 document.addEventListener('DOMContentLoaded', () => {
-    // Add loading state
-    document.body.style.opacity = '0';
-    setTimeout(() => {
-        document.body.style.transition = 'opacity 0.5s ease-in-out';
-        document.body.style.opacity = '1';
-        // Setup UI immediately
-        setupEventListeners();
-        renderInitialUI();
-        // Then fetch data
-        initializeApp();
-    }, 100);
+    // Initial UI Setup (Listeners, etc)
+    setupEventListeners();
+    applyTelegramTheme();
+
+    // Start main initialization
+    initApp();
 });
 
 function renderInitialUI() {
@@ -345,44 +361,50 @@ function renderInitialUI() {
     renderNotifications();
 }
 
-// Initialize app
-async function initializeApp() {
-    // Show loading state
-    document.body.style.opacity = '0.7';
-
-    // Fetches happen in background now
+// Main initialization function
+async function initApp() {
+    showLoading();
     try {
+        console.log('Starting App Initialization...');
+
+        // 1. Fetch all data in parallel
         await Promise.all([
             fetchUserProfile(),
             fetchCases(),
-            fetchAgenda()
+            fetchAgenda(),
+            fetchNotifications(),
+            fetchStaff()
         ]);
 
-        // Re-render with real data if fetch succeeds
-        renderInitialUI();
+        // 2. Render all sections
+        renderProfile();
+        renderStats();
+        renderAgenda();
+        renderNotifications();
+        renderCases();
+        renderDepartments();
+        renderStaff();
+
+        // 3. Post-render setup
+        setupScrollAnimations();
+
+        // 4. Handle deep linking
+        const urlParams = new URLSearchParams(window.location.search);
+        const view = urlParams.get('view');
+        if (view === 'newcase') {
+            const casesTab = document.querySelector('[data-tab="cases"]');
+            if (casesTab) casesTab.click();
+            setTimeout(() => openNewCase(), 500);
+        }
+
+        console.log('App Initialization Complete');
     } catch (e) {
-        console.log("Using mock data due to error", e);
+        console.error('Initialization Failed:', e);
+        if (tg && tg.showAlert) tg.showAlert('Failed to load office data. Using offline mode.');
+        renderInitialUI(); // Fallback to mock data rendering
+    } finally {
+        hideLoading();
     }
-
-    // Check URL parameters for specific views (moved from bottom)
-    const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view');
-
-    if (view === 'newcase') {
-        const casesTab = document.querySelector('[data-tab="cases"]');
-        if (casesTab) casesTab.click(); // Trigger click to switch
-
-        setTimeout(() => openNewCase(), 500);
-    }
-
-    // Apply theme
-    applyTelegramTheme();
-
-    // Add scroll animations
-    setupScrollAnimations();
-
-    // Hide loading state
-    document.body.style.opacity = '1';
 }
 
 
@@ -889,139 +911,7 @@ function openLeaveRequest() {
         `);
 }
 
-function openAddAgenda() {
-    tg.HapticFeedback.impactOccurred('medium');
-    showModal('Add to Agenda', `
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-            <button type="button" class="btn-small active" id="btnCourtDate" onclick="toggleAgendaType('court')" style="flex: 1; background: var(--primary-color); color: white;">Court Date</button>
-            <button type="button" class="btn-small" id="btnTask" onclick="toggleAgendaType('task')" style="flex: 1; background: var(--background); color: var(--text-primary); border: 1px solid var(--border-color);">Task</button>
-        </div>
-
-        <form onsubmit="submitAgendaItem(event)" id="agendaForm" style="display: flex; flex-direction: column; gap: 1rem;">
-            <input type="hidden" name="type" id="agendaType" value="court">
-
-                <div id="courtFields">
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Case Number</label>
-                        <input required type="text" name="case_number" placeholder="CL-2025-XXX" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Court Name</label>
-                        <input required type="text" name="court_name" placeholder="Supreme Court" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Date & Time</label>
-                        <input required type="datetime-local" name="date_time" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Purpose</label>
-                        <input required type="text" name="purpose" placeholder="Hearing, Trial, etc." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                </div>
-
-                <div id="taskFields" style="display: none;">
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Task Title</label>
-                        <input type="text" name="title" placeholder="Review documents" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Deadline</label>
-                        <input type="date" name="deadline" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Priority</label>
-                        <select name="priority" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">Add to Agenda</button>
-        </form>
-    `);
-}
-
-function toggleAgendaType(type) {
-    const btnCourt = document.getElementById('btnCourtDate');
-    const btnTask = document.getElementById('btnTask');
-    const courtFields = document.getElementById('courtFields');
-    const taskFields = document.getElementById('taskFields');
-    const agendaType = document.getElementById('agendaType');
-    const form = document.getElementById('agendaForm');
-
-    agendaType.value = type;
-
-    if (type === 'court') {
-        btnCourt.style.background = 'var(--primary-color)';
-        btnCourt.style.color = 'white';
-        btnCourt.style.border = 'none';
-
-        btnTask.style.background = 'var(--background)';
-        btnTask.style.color = 'var(--text-primary)';
-        btnTask.style.border = '1px solid var(--border-color)';
-
-        courtFields.style.display = 'block';
-        taskFields.style.display = 'none';
-
-        // Update required attributes
-        form.querySelector('input[name="case_number"]').required = true;
-        form.querySelector('input[name="court_name"]').required = true;
-        form.querySelector('input[name="date_time"]').required = true;
-        form.querySelector('input[name="purpose"]').required = true;
-
-        form.querySelector('input[name="title"]').required = false;
-        form.querySelector('input[name="deadline"]').required = false;
-
-    } else {
-        btnTask.style.background = 'var(--primary-color)';
-        btnTask.style.color = 'white';
-        btnTask.style.border = 'none';
-
-        btnCourt.style.background = 'var(--background)';
-        btnCourt.style.color = 'var(--text-primary)';
-        btnCourt.style.border = '1px solid var(--border-color)';
-
-        courtFields.style.display = 'none';
-        taskFields.style.display = 'block';
-
-        // Update required attributes
-        form.querySelector('input[name="case_number"]').required = false;
-        form.querySelector('input[name="court_name"]').required = false;
-        form.querySelector('input[name="date_time"]').required = false;
-        form.querySelector('input[name="purpose"]').required = false;
-
-        form.querySelector('input[name="title"]').required = true;
-        form.querySelector('input[name="deadline"]').required = true;
-    }
-}
-
-function submitAgendaItem(event) {
-    event.preventDefault();
-    const form = event.target;
-    const type = form.querySelector('#agendaType').value;
-
-    let data = {
-        action: 'new_agenda_item',
-        type: type
-    };
-
-    if (type === 'court') {
-        data.case_number = form.querySelector('input[name="case_number"]').value;
-        data.court_name = form.querySelector('input[name="court_name"]').value;
-        data.date_time = form.querySelector('input[name="date_time"]').value;
-        data.purpose = form.querySelector('input[name="purpose"]').value;
-    } else {
-        data.title = form.querySelector('input[name="title"]').value;
-        data.deadline = form.querySelector('input[name="deadline"]').value;
-        data.priority = form.querySelector('select[name="priority"]').value;
-    }
-
-    tg.sendData(JSON.stringify(data));
-    tg.close();
-}
-
+// Note: openAddAgenda, toggleAgendaType, and submitAgendaItem are defined below
 function openAddAgenda() {
     tg.HapticFeedback.impactOccurred('medium');
     showModal('Add to Agenda', `
@@ -1261,13 +1151,13 @@ async function deleteNotification(id) {
     if (!confirm('Delete this notification?')) return;
 
     try {
-        const response = await fetch(\`\${API_BASE_URL}/notifications/\${id}\`, {
+        const response = await fetch(`${API_BASE_URL}/notifications/${id}`, {
             method: 'DELETE',
             headers: { 'ngrok-skip-browser-warning': 'true' }
         });
-        
+
         if (response.ok) {
-            document.getElementById(\`notification-\${id}\`).remove();
+            document.getElementById(`notification-${id}`).remove();
             tg.showAlert('Notification deleted');
         } else {
             console.error('Failed to delete notification');
@@ -1275,7 +1165,7 @@ async function deleteNotification(id) {
     } catch (e) {
         console.error('Error deleting notification:', e);
         // Fallback for demo
-        document.getElementById(\`notification-\${id}\`).remove();
+        document.getElementById(`notification-${id}`).remove();
     }
 }
 
@@ -1294,16 +1184,26 @@ function closeModal() {
 function filterCases() {
     const statusFilter = document.getElementById('caseStatusFilter').value;
     const priorityFilter = document.getElementById('casePriorityFilter').value;
+    const searchTerm = document.getElementById('caseSearch').value.toLowerCase();
 
-    // Filter logic here
+    casesData = allCasesData.filter(c => {
+        const statusMatch = statusFilter === 'all' || c.status === statusFilter;
+        const priorityMatch = priorityFilter === 'all' || c.priority === priorityFilter;
+        const searchMatch = !searchTerm ||
+            c.caseNumber.toLowerCase().includes(searchTerm) ||
+            c.title.toLowerCase().includes(searchTerm) ||
+            c.client.toLowerCase().includes(searchTerm);
+
+        return statusMatch && priorityMatch && searchMatch;
+    });
+
     tg.HapticFeedback.impactOccurred('light');
-    renderCases(); // Re-render with filters
+    renderCases();
 }
 
 function searchCases() {
-    const searchTerm = document.getElementById('caseSearch').value.toLowerCase();
-    // Search logic here
-    // In production, filter casesData based on searchTerm
+    // Search is handled within filterCases for combined filtering
+    filterCases();
 }
 
 // Listen for theme changes
@@ -1320,41 +1220,4 @@ tg.BackButton.onClick(() => {
 // Action button handlers
 console.log('City Law Firm Virtual Office initialized successfully!');
 
-// INITIALIZATION LOGIC
-// This was missing!
-(async function initApp() {
-    try {
-        console.log('Starting App Initialization...');
-        
-        // 1. Setup Listeners
-        setupTabNavigation();
-        setupEventListeners();
-        setupScrollAnimations();
-        
-        // 2. Fetch Data
-        console.log('Fetching User Profile...');
-        await fetchUserProfile();
-        renderProfile();
-        
-        console.log('Fetching Dashboard Data...');
-        await Promise.all([
-            fetchCases(),
-            fetchAgenda(),
-            fetchNotifications(),
-            fetchStaff()
-        ]);
-
-        // 3. Render Initial State
-        renderStats();
-        renderAgenda();
-        renderNotifications();
-        renderCases();
-        renderDepartments();
-        renderStaff();
-        
-        console.log('App Initialization Complete');
-    } catch (e) {
-        console.error('Initialization Failed:', e);
-        if (tg && tg.showAlert) tg.showAlert('Failed to load app data. Please try again.');
-    }
-})();
+// INITIALIZATION LOGIC REMOVED - NOW HANDLED BY DOMContentLoaded
