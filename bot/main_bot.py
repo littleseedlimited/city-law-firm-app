@@ -1288,6 +1288,26 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
         finally:
             session.close()
 
+    elif action == 'new_agenda_item':
+        item_type = data.get('type', 'court')
+        if item_type == 'court':
+            await update.message.reply_text(
+                f"✅ **Court Date Added**\n\n"
+                f"📂 Case: {data.get('case_number', 'N/A')}\n"
+                f"🏛️ Court: {data.get('court_name', 'N/A')}\n"
+                f"📅 Date/Time: {data.get('date_time', 'N/A')}\n"
+                f"📋 Purpose: {data.get('purpose', 'Hearing')}",
+                parse_mode='Markdown'
+            )
+        else:
+            await update.message.reply_text(
+                f"✅ **Task Added**\n\n"
+                f"📝 Title: {data.get('title', 'N/A')}\n"
+                f"📅 Deadline: {data.get('deadline', 'N/A')}\n"
+                f"🔥 Priority: {data.get('priority', 'medium').capitalize()}",
+                parse_mode='Markdown'
+            )
+
 
 async def myagenda_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Wrapper for myagenda callback"""
