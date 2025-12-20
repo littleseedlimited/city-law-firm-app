@@ -88,21 +88,8 @@ async function fetchUserProfile() {
     } catch (error) {
         console.error('Error fetching user profile:', error);
     }
-
-    // Fallback Mock Data
-    console.log("Using fallback profile data");
-    userData = {
-        name: "John Doe",
-        position: "Senior Attorney",
-        department: "Litigation",
-        email: "john.doe@citylaw.com",
-        phone: "+1 (555) 123-4567",
-        employeeId: "CLF-1001",
-        specialization: "Corporate Litigation",
-        barNumber: "NY-12345",
-        joinDate: "2020-03-15"
-    };
-    return userData;
+    // No fallback - show empty state
+    return null;
 }
 
 // Fetch cases
@@ -275,23 +262,29 @@ async function fetchStaff() {
                 photo: s.photo_file_id ? `https://api.telegram.org/file/bot${tg.initDataUnsafe?.hash}/${s.photo_file_id}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(s.full_name)}&background=3b82f6&color=fff`,
                 status: s.is_online ? 'online' : 'offline',
                 location: s.latitude ? 'Location Shared' : 'Unknown',
+                lat: s.latitude || null,
+                lng: s.longitude || null,
                 lastSeen: s.last_seen ? new Date(s.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown'
             }));
+
             return staffData;
         }
     } catch (error) {
         console.error('Error fetching staff:', error);
     }
+    // No fallback - show empty state
+    return [];
+}
 
-    // Fallback Mock Data
-    console.log("Using fallback staff data");
-    staffData = [
-        { id: 1, name: 'Sarah Parker', role: 'Senior Partner', photo: 'https://ui-avatars.com/api/?name=Sarah+Parker&background=3b82f6&color=fff', status: 'online', location: 'Office 301', lastSeen: 'Just now' },
-        { id: 2, name: 'James Wilson', role: 'Associate', photo: 'https://ui-avatars.com/api/?name=James+Wilson&background=10b981&color=fff', status: 'offline', location: 'Unknown', lastSeen: '15 mins ago' },
-        { id: 3, name: 'Emily Chen', role: 'Paralegal', photo: 'https://ui-avatars.com/api/?name=Emily+Chen&background=f59e0b&color=fff', status: 'online', location: 'Court House', lastSeen: '5 mins ago' },
-        { id: 4, name: 'Michael Ross', role: 'Junior Associate', photo: 'https://ui-avatars.com/api/?name=Michael+Ross&background=ef4444&color=fff', status: 'offline', location: 'Meeting Room 2', lastSeen: '1 hour ago' }
-    ];
-    return staffData;
+// Open staff location on map (using OpenStreetMap - free)
+function viewStaffLocation(lat, lng, name) {
+    if (!lat || !lng) {
+        tg.showAlert('Location not available for this staff member.');
+        return;
+    }
+    // Open OpenStreetMap in a new window/popup
+    const mapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`;
+    window.open(mapUrl, '_blank');
 }
 
 // Mock data removed - using API data
@@ -599,6 +592,7 @@ function renderStaff() {
                 Last seen: ${staff.lastSeen}
             </div>
             <div class="card-actions" style="display: flex; gap: 0.5rem; margin-top: 0.75rem; width: 100%;">
+                ${staff.lat && staff.lng ? `<button class="btn-small" onclick="viewStaffLocation(${staff.lat}, ${staff.lng}, '${staff.name}')" style="flex: 1; font-size: 0.75rem; padding: 0.25rem; background: var(--success-color); color: white; border: none;">📍 Map</button>` : ''}
                 <button class="btn-small" onclick="editStaff(${staff.id})" style="flex: 1; font-size: 0.75rem; padding: 0.25rem;">Edit</button>
                 <button class="btn-small" onclick="deleteStaff(${staff.id})" style="flex: 1; font-size: 0.75rem; padding: 0.25rem; color: var(--danger-color); border-color: var(--danger-color);">Delete</button>
             </div>
