@@ -120,16 +120,7 @@ async function fetchCases() {
         console.error('Error fetching cases:', error);
     }
 
-    // Fallback Mock Data
-    console.log("Using fallback cases data");
-    casesData = [
-        { id: 1, caseNumber: 'CL-2025-001', title: 'Smith vs. Jones Corp', client: 'John Smith', type: 'Civil', status: 'active', priority: 'high', nextCourtDate: '2025-12-15T09:00:00', deadline: '2025-12-20T17:00:00' },
-        { id: 2, caseNumber: 'CL-2025-002', title: 'State vs. Doe', client: 'Jane Doe', type: 'Criminal', status: 'pending', priority: 'urgent', nextCourtDate: null, deadline: '2025-12-10T17:00:00' },
-        { id: 3, caseNumber: 'CL-2025-003', title: 'Real Estate Merger', client: 'Tech Properties', type: 'Corporate', status: 'active', priority: 'normal', nextCourtDate: null, deadline: '2026-01-15T17:00:00' },
-        { id: 4, caseNumber: 'CL-2025-004', title: 'Family Trust Setup', client: 'Robert Wilson', type: 'Family', status: 'closed', priority: 'low', nextCourtDate: null, deadline: null }
-    ];
-    statsData.activeCases = casesData.filter(c => c.status === 'active').length;
-    return casesData;
+    return [];
 }
 
 // Fetch agenda
@@ -178,48 +169,8 @@ async function fetchAgenda() {
         console.error('Error fetching agenda:', error);
     }
 
-    // Fallback Mock Data
-    console.log("Using fallback agenda data");
-    const mockAgenda = {
-        court_dates: [
-            { hearing_date: '2025-12-12T10:00:00', court_name: 'District Court', purpose: 'Preliminary Hearing' },
-            { hearing_date: '2025-12-15T14:30:00', court_name: 'Superior Court', purpose: 'Case Management Conference' }
-        ],
-        tasks: [
-            { title: 'Draft Motion to Dismiss (Smith vs. Jones)' },
-            { title: 'Client Meeting: Tech Properties' }
-        ],
-        total_hours: 142.5
-    };
-
-    statsData.courtDates = mockAgenda.court_dates.length;
-    statsData.billableHours = mockAgenda.total_hours;
-
-    // Map to agenda items for display
-    agendaData = [];
-    if (mockAgenda.court_dates) {
-        mockAgenda.court_dates.forEach(cd => {
-            const date = new Date(cd.hearing_date);
-            agendaData.push({
-                time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                title: "Court Appearance",
-                description: `${cd.court_name} - ${cd.purpose || 'Hearing'} `,
-                type: "court"
-            });
-        });
-    }
-    if (mockAgenda.tasks) {
-        mockAgenda.tasks.forEach(t => {
-            agendaData.push({
-                time: "Anytime",
-                title: "Task",
-                description: t.title,
-                type: "deadline"
-            });
-        });
-    }
-
-    return mockAgenda;
+    // No mock data fallback
+    return { court_dates: [], tasks: [], time_entries: [], total_hours: 0 };
 }
 
 // Fetch notifications
@@ -635,7 +586,7 @@ function renderCases() {
         const priorityBadge = getPriorityBadge(caseItem.priority);
 
         return `
-            <div class="case-card" onclick="viewCaseDetails(${caseItem.id})">
+            <div class="case-card" onclick="viewCase('${caseItem.id}')" style="cursor: pointer;">
                 <div class="case-header">
                     <div>
                         <div class="case-number">${caseItem.caseNumber}</div>
@@ -678,10 +629,156 @@ function renderCases() {
                     <button class="btn-small" onclick="event.stopPropagation(); deleteCase(${caseItem.id})" style="flex: 1; color: var(--danger-color); border-color: var(--danger-color); background: #fff;">Delete</button>
                 </div>
             </div>
+        </div>
         `;
     }).join('');
 
     casesList.innerHTML = casesHTML;
+}
+
+function viewCase(id) {
+    const c = casesData.find(x => x.id == id);
+    if (!c) return;
+
+    showModal(`Case: ${c.caseNumber}`, `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                <h3 style="margin: 0 0 0.5rem 0; color: #1e293b;">${c.title}</h3>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    ${getStatusBadge(c.status)}
+                    ${getPriorityBadge(c.priority)}
+                </div>
+                <p style="margin: 0.5rem 0; color: #64748b; font-size: 0.9rem;">${c.type}</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Client</strong>
+                    <span style="color: #334155;">${c.client}</span>
+                </div>
+                 <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Next Court Date</strong>
+                    <span style="color: #334155;">${c.nextCourtDate ? formatDate(c.nextCourtDate) : 'N/A'}</span>
+                </div>
+                <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Deadline</strong>
+                    <span style="color: #334155;">${c.deadline ? formatDate(c.deadline) : 'None'}</span>
+                </div>
+                 <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Assigned To</strong>
+                    <span style="color: #334155;">${c.assignedTo || 'Unassigned'}</span>
+                </div>
+            </div>
+            
+             <div style="margin-top: 0.5rem;">
+                <strong style="display: block; color: #64748b; font-size: 0.8rem; margin-bottom: 0.25rem;">Description</strong>
+                <p style="margin: 0; color: #334155;background: #fff; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px;">${c.description || 'No additional details provided.'}</p>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button onclick="editCase(${c.id})" style="flex: 1; padding: 0.75rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; font-weight: 500;">Edit</button>
+                <button onclick="closeModal()" style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 500;">Close</button>
+            </div>
+        </div>
+    `);
+}
+
+function viewCase(id) {
+    const c = casesData.find(x => x.id == id);
+    if (!c) return;
+
+    showModal(`Case: ${c.caseNumber}`, `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                <h3 style="margin: 0 0 0.5rem 0; color: #1e293b;">${c.title}</h3>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    ${getStatusBadge(c.status)}
+                    ${getPriorityBadge(c.priority)}
+                </div>
+                <p style="margin: 0.5rem 0; color: #64748b; font-size: 0.9rem;">${c.type}</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Client</strong>
+                    <span style="color: #334155;">${c.client}</span>
+                </div>
+                 <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Next Court Date</strong>
+                    <span style="color: #334155;">${c.nextCourtDate ? formatDate(c.nextCourtDate) : 'N/A'}</span>
+                </div>
+                <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Deadline</strong>
+                    <span style="color: #334155;">${c.deadline ? formatDate(c.deadline) : 'None'}</span>
+                </div>
+                 <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Assigned To</strong>
+                    <span style="color: #334155;">${c.assignedTo || 'Unassigned'}</span>
+                </div>
+            </div>
+            
+             <div style="margin-top: 0.5rem;">
+                <strong style="display: block; color: #64748b; font-size: 0.8rem; margin-bottom: 0.25rem;">Details</strong>
+                <p style="margin: 0; color: #334155;background: #fff; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; white-space: pre-wrap;">${c.description || 'No additional details provided.'}</p>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button onclick="editCase(${c.id})" style="flex: 1; padding: 0.75rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; font-weight: 500;">Edit</button>
+                <button onclick="closeModal()" style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 500;">Close</button>
+            </div>
+        </div>
+    `);
+}
+
+
+
+
+
+function viewCase(id) {
+    const c = casesData.find(x => x.id == id);
+    if (!c) return;
+
+    showModal(`Case: ${c.caseNumber}`, `
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                <h3 style="margin: 0 0 0.5rem 0; color: #1e293b;">${c.title}</h3>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    ${getStatusBadge(c.status)}
+                    ${getPriorityBadge(c.priority)}
+                </div>
+                <p style="margin: 0.5rem 0; color: #64748b; font-size: 0.9rem;">${c.type}</p>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Client</strong>
+                    <span style="color: #334155;">${c.client}</span>
+                </div>
+                 <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Next Court Date</strong>
+                    <span style="color: #334155;">${c.nextCourtDate ? formatDate(c.nextCourtDate) : 'N/A'}</span>
+                </div>
+                <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Deadline</strong>
+                    <span style="color: #334155;">${c.deadline ? formatDate(c.deadline) : 'None'}</span>
+                </div>
+                 <div>
+                    <strong style="display: block; color: #64748b; font-size: 0.8rem;">Assigned To</strong>
+                    <span style="color: #334155;">${c.assignedTo || 'Unassigned'}</span>
+                </div>
+            </div>
+            
+             <div style="margin-top: 0.5rem;">
+                <strong style="display: block; color: #64748b; font-size: 0.8rem; margin-bottom: 0.25rem;">Details</strong>
+                <p style="margin: 0; color: #334155;background: #fff; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 6px; white-space: pre-wrap;">${c.description || 'No additional details provided.'}</p>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button onclick="editCase(${c.id})" style="flex: 1; padding: 0.75rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; font-weight: 500;">Edit</button>
+                <button onclick="closeModal()" style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 500;">Close</button>
+            </div>
+        </div>
+    `);
 }
 
 function editCase(id) {
@@ -794,6 +891,7 @@ function submitNewCase(event) {
         case_type: form.querySelectorAll('select')[0].value,
         department: form.querySelectorAll('select')[1].value,
         priority: form.querySelectorAll('select')[2].value,
+        description: form.querySelector('textarea').value,
         assigned_to: form.querySelector('input[placeholder="Attorney Name"]').value
     };
     tg.sendData(JSON.stringify(data));
@@ -816,7 +914,7 @@ function openNewCase() {
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Detail</label>
+                    <label>Case Type</label>
                     <select class="form-select">
                         <option>Litigation</option>
                         <option>Corporate</option>
@@ -832,6 +930,10 @@ function openNewCase() {
                         <option>Urgent</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Case Details</label>
+                <textarea required rows="3" placeholder="Brief details about the case..." class="form-input" style="font-family: inherit;"></textarea>
             </div>
             <div class="form-group">
                 <label>Responsible Attorney</label>
