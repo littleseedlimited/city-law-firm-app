@@ -1435,17 +1435,48 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     action = data.get('action')
     
     if action == 'new_case':
-        # Save to DB (Mock logic for now as we need to find user IDs)
-        await update.message.reply_text(
-            f"✅ **New Case Registered**\n\n"
-            f"📂 Case: {data['case_number']}\n"
-            f"👤 Client: {data['client_name']}\n"
-            f"⚖️ Type: {data['case_type']}\n"
-            f"🏢 Dept: {data['department']}\n"
-            f"🔥 Priority: {data['priority']}\n"
-            f"👮 Assigned to: {data['assigned_to']}",
-            parse_mode='Markdown'
-        )
+        # Save to database
+        session = get_session(engine)
+        try:
+            user = update.effective_user
+            db_user = session.query(User).filter_by(telegram_id=user.id).first()
+            
+            if not db_user:
+                await update.message.reply_text("❌ Error: Please complete onboarding first with /start")
+                return
+            
+            # Create new case
+            new_case = Case(
+                case_number=data.get('case_number', f"CL-{datetime.now().strftime('%Y%m%d%H%M')}"),
+                title=f"{data.get('client_name', 'New Client')} Case",
+                client_name=data.get('client_name', 'Unknown'),
+                case_type=data.get('case_type', 'General'),
+                status='active',
+                priority=data.get('priority', 'normal').lower(),
+                assigned_to=db_user.id,
+                filing_date=datetime.now(),
+                deadline=datetime.now() + timedelta(days=30)
+            )
+            session.add(new_case)
+            session.commit()
+            
+            await update.message.reply_text(
+                f"✅ **New Case Saved Successfully**\n\n"
+                f"📂 Case: {new_case.case_number}\n"
+                f"👤 Client: {new_case.client_name}\n"
+                f"⚖️ Type: {new_case.case_type}\n"
+                f"🔥 Priority: {new_case.priority.title()}\n"
+                f"👮 Assigned to: {db_user.full_name}\n\n"
+                f"Case ID: #{new_case.id}",
+                parse_mode='Markdown'
+            )
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error saving new case: {e}")
+            await update.message.reply_text(f"❌ Error saving case: {str(e)}")
+        finally:
+            session.close()
+
         
     elif action == 'log_time':
         await update.message.reply_text(
