@@ -32,7 +32,7 @@ try {
 // };
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://tomoko-pericarditic-regretfully.ngrok-free.dev/api';
 const USER_ID = tg.initDataUnsafe?.user?.id || 12345;
 
 // Data storage
