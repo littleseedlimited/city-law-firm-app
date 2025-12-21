@@ -915,6 +915,207 @@ async def post_init(application: Application) -> None:
     await start_scheduler()
 
 
+async def quickstart(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/quickstart - Quick Start Guide for new users"""
+    guide_text = (
+        "🚀 **Quick Start Guide**\n\n"
+        "Welcome to City Law Firm Virtual Office! Here's how to get started:\n\n"
+        
+        "**Step 1: Complete Onboarding**\n"
+        "Send /start and click 'Start Onboarding' to set up your profile.\n\n"
+        
+        "**Step 2: Open Virtual Office**\n"
+        "Access the Mini App for a complete dashboard with:\n"
+        "• Your cases and court dates\n"
+        "• Team status and locations\n"
+        "• Notifications and tasks\n\n"
+        
+        "**Step 3: Key Commands**\n"
+        "• /myagenda - View today's schedule\n"
+        "• /casestatus - Check case progress\n"
+        "• /profile - View/edit your profile\n"
+        "• /help - See all commands\n\n"
+        
+        "**Step 4: Stay Connected**\n"
+        "• Enable notifications for reminders\n"
+        "• Share location for team visibility\n"
+        "• Log billable hours regularly\n\n"
+        
+        "**Need Help?** Send /help or contact IT support."
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("📱 Open Virtual Office", web_app=WebAppInfo(url=os.getenv('MINI_APP_URL')))],
+        [InlineKeyboardButton("✅ Start Onboarding", callback_data='start_onboarding')],
+        [InlineKeyboardButton("📚 Full Command List", callback_data='help')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        guide_text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+
+async def user_guide_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show detailed user guide"""
+    query = update.callback_query
+    await query.answer()
+    
+    guide_text = (
+        "📚 **City Law Firm - User Guide**\n\n"
+        
+        "**🏢 Virtual Office Mini App**\n"
+        "The Mini App is your central hub for:\n"
+        "• Dashboard with stats and agenda\n"
+        "• Case management and tracking\n"
+        "• Department information\n"
+        "• Staff directory with locations\n"
+        "• Profile management\n\n"
+        
+        "**📋 Case Management**\n"
+        "• Register new cases via Mini App or /newcase\n"
+        "• Track case status with /casestatus\n"
+        "• Refer cases between departments\n\n"
+        
+        "**⏰ Time & Attendance**\n"
+        "• Log billable hours through the Mini App\n"
+        "• Request leave with forms in the app\n"
+        "• View your agenda with /myagenda\n\n"
+        
+        "**🔔 Notifications**\n"
+        "• Court date reminders (1 day before)\n"
+        "• Deadline alerts\n"
+        "• System broadcasts\n\n"
+        
+        "**📍 Location Sharing**\n"
+        "Staff can share their location for team visibility.\n"
+        "View locations on the Staff Status tab.\n\n"
+        
+        "**🔒 Security**\n"
+        "• Your data is encrypted\n"
+        "• Only authorized personnel can access cases\n"
+        "• All actions are logged"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("📱 Open Virtual Office", web_app=WebAppInfo(url=os.getenv('MINI_APP_URL')))],
+        [InlineKeyboardButton("🚀 Quick Start", callback_data='quickstart_cb')],
+        [InlineKeyboardButton("📞 Contact Support", url="https://t.me/LittleSeedAI")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        guide_text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+
+async def learn_more_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show learn more info for new users"""
+    query = update.callback_query
+    await query.answer()
+    
+    info_text = (
+        "ℹ️ **About City Law Firm Virtual Office**\n\n"
+        
+        "This is a comprehensive Telegram-based office management system designed "
+        "specifically for law firms.\n\n"
+        
+        "**Features:**\n"
+        "• 📱 Mini App with visual dashboard\n"
+        "• 📋 Case management and tracking\n"
+        "• ⏰ Court date reminders\n"
+        "• 💼 Billable hours logging\n"
+        "• 👥 Staff directory with locations\n"
+        "• 📢 Notifications and broadcasts\n"
+        "• 🏖️ Leave request management\n"
+        "• 📚 Legal resources search\n\n"
+        
+        "**Departments:**\n"
+        "• Partners & Management\n"
+        "• Litigation\n"
+        "• Corporate Law\n"
+        "• Family Law\n"
+        "• Criminal Defense\n"
+        "• Administration & HR\n\n"
+        
+        "Ready to join? Click **Start Onboarding** below!"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ Start Onboarding", callback_data='start_onboarding')],
+        [InlineKeyboardButton("🚀 Quick Start Guide", callback_data='quickstart_cb')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        info_text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+
+async def quickstart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle quickstart callback for inline buttons"""
+    query = update.callback_query
+    await query.answer()
+    
+    guide_text = (
+        "🚀 **Quick Start Guide**\n\n"
+        "Welcome to City Law Firm Virtual Office!\n\n"
+        
+        "**Step 1:** Complete onboarding with /start\n"
+        "**Step 2:** Open the Virtual Office Mini App\n"
+        "**Step 3:** Explore your dashboard\n"
+        "**Step 4:** Set up notifications\n\n"
+        
+        "Key commands: /help, /myagenda, /profile"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("📱 Open Virtual Office", web_app=WebAppInfo(url=os.getenv('MINI_APP_URL')))],
+        [InlineKeyboardButton("✅ Start Onboarding", callback_data='start_onboarding')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        guide_text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+
+async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle help callback for inline button"""
+    query = update.callback_query
+    await query.answer()
+    
+    help_text = (
+        "🤖 **Command Reference**\n\n"
+        "**Main:** /start, /help, /myagenda\n"
+        "**Cases:** /newcase, /casestatus\n"
+        "**Personal:** /profile, /requestleave\n"
+        "**Resources:** /resources\n"
+        "**Alerts:** /emergency\n\n"
+        "Use /help for full details."
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("📱 Open Virtual Office", web_app=WebAppInfo(url=os.getenv('MINI_APP_URL')))],
+        [InlineKeyboardButton("📚 User Guide", callback_data='user_guide')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        help_text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+
+
 def main():
     """Start the bot"""
     # Create application
@@ -954,6 +1155,7 @@ def main():
     # Command handlers
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help_command))
+    application.add_handler(CommandHandler('quickstart', quickstart))
     application.add_handler(CommandHandler('myagenda', myagenda))
     application.add_handler(CommandHandler('newcase', newcase))
     application.add_handler(CommandHandler('casestatus', casestatus))
@@ -962,7 +1164,14 @@ def main():
     application.add_handler(CommandHandler('emergency', emergency))
     application.add_handler(CommandHandler('refer', refer))
     application.add_handler(CommandHandler('profile', profile))
+    
+    # Additional callback handlers
+    application.add_handler(CallbackQueryHandler(user_guide_callback, pattern='^user_guide$'))
+    application.add_handler(CallbackQueryHandler(learn_more_callback, pattern='^learn_more$'))
+    application.add_handler(CallbackQueryHandler(quickstart_callback, pattern='^quickstart_cb$'))
+    
     application.add_handler(onboarding_handler)
+
     
     # Web App Data Handler
     application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
