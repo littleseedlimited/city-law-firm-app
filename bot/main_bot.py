@@ -24,8 +24,9 @@ load_dotenv('config/.env')
 
 from database.models import (
     init_db, get_session, User, Case, CourtDate, 
-    TimeEntry, LeaveRequest, Notification, ComplianceTask, Document
+    TimeEntry, LeaveRequest, Notification, ComplianceTask, Document, PaymentRequest
 )
+import uuid
 from bot.scheduler import start_scheduler
 
 
@@ -1088,6 +1089,68 @@ async def quickstart_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
 
 
+
+async def myagenda_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle myagenda callback"""
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    session = get_session(engine)
+    
+    try:
+        db_user = session.query(User).filter_by(telegram_id=user.id).first()
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Get Court Dates for next 7 days
+        week_from_now = today_start + timedelta(days=7)
+        court_dates = session.query(CourtDate).join(Case).filter(
+            Case.assigned_to == db_user.id,
+            CourtDate.hearing_date >= today_start,
+            CourtDate.hearing_date <= week_from_now
+        ).order_by(CourtDate.hearing_date).limit(5).all()
+        
+        # Get Compliance Tasks
+        tasks = session.query(ComplianceTask).filter(
+            ComplianceTask.assigned_to == db_user.id,
+            ComplianceTask.status == 'pending'
+        ).order_by(ComplianceTask.deadline).limit(5).all()
+
+        msg = f"📋 **My Agenda - {db_user.full_name}**\n\n"
+        
+        msg += "**🏛️ Upcoming Hearings (7 Days):**\n"
+        if court_dates:
+            for cd in court_dates:
+                msg += f"• {cd.hearing_date.strftime('%d/%m %H:%M')} - {cd.case.case_number}\n"
+        else:
+            msg += "_No upcoming hearings this week._\n"
+            
+        msg += "\n**✅ Pending Tasks:**\n"
+        if tasks:
+            for t in tasks:
+                dx = t.deadline.strftime('%d/%m') if t.deadline else 'No date'
+                msg += f"• {t.title} (Due {dx})\n"
+        else:
+            msg += "_No pending tasks._\n"
+
+        keyboard = [
+            [InlineKeyboardButton("📱 Open Full Agenda", web_app=WebAppInfo(url=f"{os.getenv('MINI_APP_URL')}"))],
+            [InlineKeyboardButton("« Back to Menu", callback_data='help')]
+        ]
+        
+        await query.edit_message_text(
+            msg,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in myagenda_callback: {e}")
+        await query.edit_message_text("❌ Error loading agenda.")
+    finally:
+        session.close()
+
+
 async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle help callback for inline button"""
     query = update.callback_query
@@ -1164,8 +1227,10 @@ def main():
     application.add_handler(CommandHandler('emergency', emergency))
     application.add_handler(CommandHandler('refer', refer))
     application.add_handler(CommandHandler('profile', profile))
-    
+    application.add_handler(CommandHandler('paymentlink', handle_payment_link_command))
+
     # Additional callback handlers
+
     application.add_handler(CallbackQueryHandler(user_guide_callback, pattern='^user_guide$'))
     application.add_handler(CallbackQueryHandler(learn_more_callback, pattern='^learn_more$'))
     application.add_handler(CallbackQueryHandler(quickstart_callback, pattern='^quickstart_cb$'))
@@ -1428,6 +1493,84 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session.close()
 
 
+async def handle_payment_link_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """/paymentlink [amount] [case_ref] - Generate payment link (Super Admin only)"""
+    user = update.effective_user
+    super_admin_id = os.getenv('SUPER_ADMIN_ID')
+    allowed_username = 'origichidiah'
+    
+    is_admin = False
+    if super_admin_id and str(user.id) == str(super_admin_id):
+        is_admin = True
+    elif user.username and user.username.lower() == allowed_username.lower():
+        is_admin = True
+
+    # Strict Super Admin Check
+    if not is_admin:
+        await update.message.reply_text(f"⛔ **Access Denied**: restricted to Super Admin (Paul Kasim, @{allowed_username}).\nYour ID: `{user.id}`", parse_mode='Markdown')
+        return
+
+
+    # Parse arguments
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text(
+            "❌ **Usage:** `/paymentlink [amount] [case_reference]`\n"
+            "Example: `/paymentlink 5000 CL-2025-001`",
+            parse_mode='Markdown'
+        )
+        return
+
+    try:
+        amount = float(context.args[0])
+        case_ref = context.args[1]
+        
+        # Generate unique token
+        token = str(uuid.uuid4())
+        
+        session = get_session(engine)
+        try:
+            # Create link record
+            db_user = session.query(User).filter_by(telegram_id=user.id).first()
+            
+            payment_request = PaymentRequest(
+                link_token=token,
+                amount=amount,
+                case_reference=case_ref,
+                created_by=db_user.id if db_user else None,
+                status='pending'
+            )
+            
+            session.add(payment_request)
+            session.commit()
+            
+            # Construct link - Use API_BASE_URL (ngrok) for external access
+            base_url = os.getenv('MINI_APP_URL', 'http://localhost:5000').rsplit('/', 1)[0] # Extract base
+            # If MINI_APP_URL is https://.../mini_app/index.html, we want https://...
+            if 'mini_app' in base_url:
+                 base_url = base_url.split('/mini_app')[0]
+
+            link = f"{base_url}/pay/{token}"
+            
+            await update.message.reply_text(
+                f"✅ **Payment Link Generated**\n\n"
+                f"💰 **Amount:** ${amount:,.2f}\n"
+                f"📂 **Case:** {case_ref}\n"
+                f"🔗 **Link:** `{link}`\n\n"
+                f"_Send this link to the client securely._",
+                parse_mode='Markdown'
+            )
+            
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error DB: {str(e)}")
+        finally:
+            session.close()
+
+    except ValueError:
+             await update.message.reply_text("❌ Error: Amount must be a number.")
+    except Exception as e:
+        logger.error(f"Error in payment command: {e}")
+        await update.message.reply_text("❌ An unexpected error occurred.")
+
 
 async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle data received from Mini App"""
@@ -1455,7 +1598,8 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
                 priority=data.get('priority', 'normal').lower(),
                 assigned_to=db_user.id,
                 filing_date=datetime.now(),
-                deadline=datetime.now() + timedelta(days=30)
+                deadline=datetime.now() + timedelta(days=30),
+                description=data.get('description', '')
             )
             session.add(new_case)
             session.commit()
@@ -2373,6 +2517,106 @@ async def setup_commands(application: Application):
     ]
     await application.bot.set_my_commands(commands)
 
+
+async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle back to start callback"""
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    session = get_session(engine)
+    try:
+        db_user = session.query(User).filter_by(telegram_id=user.id).first()
+        if not db_user:
+             await query.edit_message_text("Please run /start to onboard.")
+             return
+
+        # Determine greeting
+        greeting = "👋 Welcome back"
+        
+        broadcast_param = ""
+        # Check for unread notifications (simplified check)
+        # ...
+
+        keyboard = [
+            [InlineKeyboardButton("📱 Open Virtual Office", web_app=WebAppInfo(url=os.getenv('MINI_APP_URL') + broadcast_param))],
+            [InlineKeyboardButton("📋 My Agenda", callback_data='my_agenda')],
+            [InlineKeyboardButton("📊 Dashboard", callback_data='dashboard')],
+            [InlineKeyboardButton("ℹ️ Help", callback_data='help')]
+        ]
+        
+        await query.edit_message_text(
+            f"{greeting}, {db_user.full_name}!\n\n"
+            f"🏢 **City Law Firm Virtual Office**\n"
+            f"Departments: {db_user.departments}\n"
+            f"Position: {db_user.position}\n\n"
+            f"What would you like to do today?",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    finally:
+        session.close()
+
+async def dashboard_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle dashboard callback"""
+    query = update.callback_query
+    await query.answer()
+    
+    user = update.effective_user
+    session = get_session(engine)
+    try:
+        db_user = session.query(User).filter_by(telegram_id=user.id).first()
+        today = datetime.now().date()
+        week_from_now = datetime.now() + timedelta(days=7)
+        
+        # Count active cases
+        active_cases = session.query(Case).filter(
+            Case.assigned_to == db_user.id,
+            Case.status.in_(['open', 'in_progress', 'active'])
+        ).count()
+        
+        # Upcoming court dates
+        upcoming_court = session.query(CourtDate).join(Case).filter(
+            Case.assigned_to == db_user.id,
+            CourtDate.hearing_date >= datetime.now(),
+            CourtDate.hearing_date <= week_from_now
+        ).count()
+        
+        # Pending leave
+        pending_leave = session.query(LeaveRequest).filter(
+            LeaveRequest.user_id == db_user.id,
+            LeaveRequest.status == 'pending'
+        ).count()
+        
+        dashboard_text = (
+            f"📊 **Dashboard - {db_user.full_name}**\n\n"
+            f"🏢 **Dept:** {db_user.departments}\n"
+            f"💼 **Role:** {db_user.position}\n\n"
+            f"**📈 Your Stats:**\n"
+            f"• Active Cases: {active_cases}\n"
+            f"• Court Dates (7d): {upcoming_court}\n"
+            f"• Pending Leave: {pending_leave}\n\n"
+            f"_Last updated: {datetime.now().strftime('%H:%M')}_"
+        )
+        
+        keyboard = [
+            [InlineKeyboardButton("📱 Open Virtual Office", web_app=WebAppInfo(url=os.getenv('MINI_APP_URL')))],
+            [InlineKeyboardButton("📋 My Agenda", callback_data='my_agenda')],
+            [InlineKeyboardButton("🔄 Refresh", callback_data='dashboard')],
+            [InlineKeyboardButton("« Back", callback_data='back_to_start')]
+        ]
+        
+        await query.edit_message_text(
+            dashboard_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+    except Exception as e:
+        logger.error(f"Dashboard error: {e}")
+        await query.edit_message_text("❌ Error loading dashboard.")
+    finally:
+        session.close()
+
 def main():
     """Start the bot"""
     # Create application
@@ -2405,6 +2649,12 @@ def main():
     # Middleware (Check blocked status first)
     from telegram.ext import TypeHandler
     application.add_handler(TypeHandler(Update, check_block), group=-1)
+
+    # Callback Handlers
+    application.add_handler(CallbackQueryHandler(start_callback, pattern='^back_to_start$'))
+    application.add_handler(CallbackQueryHandler(dashboard_callback, pattern='^dashboard$'))
+    application.add_handler(CallbackQueryHandler(myagenda_callback, pattern='^my_agenda$'))
+    application.add_handler(CallbackQueryHandler(help_callback, pattern='^help$'))
 
     # Command handlers
     application.add_handler(CommandHandler('start', start))
